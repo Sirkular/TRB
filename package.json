@@ -1,0 +1,22 @@
+{
+  "name": "trb-bot",
+  "version": "1.0.0",
+  "description": "A Discord bot for management of an online Dungeons and Dragons 5e community.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sirkular/The-Nine.git"
+  },
+  "author": "Sirkular",
+  "bugs": {
+    "url": "https://github.com/Sirkular/The-Nine/issues"
+  },
+  "homepage": "https://github.com/Sirkular/The-Nine#readme",
+  "dependencies": {
+    "discord.js": "^12.2.0",
+    "googleapis": "^57.0.0"
+  }
+}
