@@ -20,6 +20,7 @@ const config = require('./config.json');
 
 ////////////////////////////////Load Modules///////////////////////////////////
 
+require('./timestampConsole.js')();
 const help = require('./help.js')();
 const commands = require('./commands.js')();
 
@@ -68,10 +69,14 @@ client.on('message', async message => {
   }
 
   /////////////////////////////////Commands////////////////////////////////////
-  if (command === 'help') {
+  if(command === "ping") {
+    const m = await message.channel.send("Ping?");
+    m.edit(`Pong! Latency is ${m.createdTimestamp - message.createdTimestamp}ms. API Latency is ${Math.round(client.ping)}ms`);
+  }
+  else if (command === 'help') {
     sendChunkedText(message, help.getHelp(args), true)
   }
-  if (command === 'info') {
+  else if (command === 'info') {
     commands.getCharacterInfo(args).then((output) => {
       message.channel.send(output);
     });
