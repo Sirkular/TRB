@@ -16,9 +16,9 @@ module.exports = function() {
   * Returns a promise that resolves with sheet data of sheet
   * @param {number|string} sheet - A sheet ID or sheet name
   */
-  operations.getSheet = function(auth, sheet) {
+  operations.getSheet = function(sheet) {
     return new Promise(function(resolve, reject) {
-      request = {
+      const request = {
         spreadsheetId: SPREADSHEET_ID,
         range: sheet,
         auth: auth
