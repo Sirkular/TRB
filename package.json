@@ -8,13 +8,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Sirkular/The-Nine.git"
+    "url": "git+https://github.com/Sirkular/TRB.git"
   },
   "author": "Sirkular",
   "bugs": {
-    "url": "https://github.com/Sirkular/The-Nine/issues"
+    "url": "https://github.com/Sirkular/TRB/issues"
   },
-  "homepage": "https://github.com/Sirkular/The-Nine#readme",
+  "homepage": "https://github.com/Sirkular/TRB#readme",
   "dependencies": {
     "discord.js": "^12.2.0",
     "googleapis": "^57.0.0"
