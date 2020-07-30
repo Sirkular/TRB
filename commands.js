@@ -7,9 +7,11 @@ module.exports = function() {
       let charName = args[0];
       if (!charName) resolve('No character name was given.')
       sheetOp.getSheet(CHARACTERS_SHEET)
-        .then(function(sheetObj) {
-          resolve(sheetOp.getCharacterValue(sheetObj, charName, "MXP"));
-        }).catch((err) => {});
+        .then((table) => {
+          let mxp = sheetOp.getCharacterValue(table, charName, "MXP");
+          if (mxp === null) resolve('No character by that name exists.');
+          resolve("MXP: " + mxp);
+        }).catch((err) => {console.log('getCharacterInfo error')});
     });
   };
 

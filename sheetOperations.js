@@ -17,13 +17,14 @@ module.exports = function() {
   * @param {number|string} sheet - A sheet ID or sheet name
   */
   operations.getSheet = function(sheet) {
-    return new Promise(function(resolve, reject) {
+    return new Promise(async function(resolve, reject) {
       const request = {
         spreadsheetId: SPREADSHEET_ID,
         range: sheet,
         auth: auth
       }
-      resolve(sheets.spreadsheets.values.get(request).data);
+      let response = await sheets.spreadsheets.values.get(request);
+      resolve(response.data.values);
     });
   }
 
@@ -32,12 +33,12 @@ module.exports = function() {
   * @param {string} charName - A character's nameChange
   * @param {string} valueName - The name of the value to query
   */
-  operations.getCharacterValue = function(sheetObj, charName, valueName) {
-    const charColIndex = sheetObj[HEADER_ROW].indexOf(CHAR_COLUMN);
-    const valueColIndex = sheetObj[HEADER_ROW].indexOf(valueName);
-    const charRowIndex = sheetObj.map(row => row[charColIndex]).indexOf(charName);
+  operations.getCharacterValue = function(table, charName, valueName) {
+    const charColIndex = table[HEADER_ROW].indexOf(CHAR_COLUMN);
+    const valueColIndex = table[HEADER_ROW].indexOf(valueName);
+    const charRowIndex = table.map(row => row[charColIndex]).indexOf(charName);
     if (charRowIndex === -1) return null;
-    return sheetObj[charRowIndex][valueColIndex];
+    return table[charRowIndex][valueColIndex];
   };
 
   operations.getPlayerValue = function(sheetObj, playerId, valueName) {
