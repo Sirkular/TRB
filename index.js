@@ -2,6 +2,12 @@ global.DEV_MODE = true;
 if (!global.DEV_MODE) require('dotenv').config();
 
 const SPREADSHEET_ID = '1cbxNvmAEqEGeHtaf09ZaWV3YF9Rmz2F6vayabfYWyf4';
+const CHARACTERS_SHEET_ID = '0';
+const PLAYERS_SHEET_ID = '1510652814';
+const TIMELINE_SHEET_ID = '415116931';
+const CHARACTERS_SHEET = 'Characters';
+const PLAYERS_SHEET = 'Players';
+const TIMELINE_SHEET = 'Timeline';
 
 ///////////////////////////////Discord Setup///////////////////////////////////
 
@@ -14,8 +20,8 @@ const config = require('./config.json');
 
 ////////////////////////////////Load Modules///////////////////////////////////
 
-const googleAuth = require('./googleAuth.js')();
 const help = require('./help.js')();
+const commands = require('./commands.js')();
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -64,6 +70,11 @@ client.on('message', async message => {
   /////////////////////////////////Commands////////////////////////////////////
   if (command === 'help') {
     sendChunkedText(message, help.getHelp(args), true)
+  }
+  if (command === 'info') {
+    commands.getCharacterInfo(args).then((output) => {
+      message.channel.send(output);
+    });
   }
   else {
     message.channel.send('Command not recognized.');
