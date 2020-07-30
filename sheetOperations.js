@@ -1,10 +1,16 @@
-module.exports = function(google) {
+module.exports = function() {
   const operations = {};
   const HEADER_ROW = 0;
   const ID_COLUMN = "ID";
   const CHAR_COLUMN = "CHAR_NAME";
   const MXP_COLUMN = "MXP"
-  const sheets = google.sheets('v4');
+
+  let sheets;
+  let auth;
+  require('./googleAuth.js')().then((googleAuth) => {
+    sheets = googleAuth.google.sheets('v4');
+    auth = googleAuth.auth;
+  });
 
   /**
   * Returns a promise that resolves with sheet data of sheet
