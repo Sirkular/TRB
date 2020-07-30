@@ -1,13 +1,13 @@
-global.DEV_MODE = true;
-if (!global.DEV_MODE) require('dotenv').config();
+DEV_MODE = true;
+SPREADSHEET_ID = '1cbxNvmAEqEGeHtaf09ZaWV3YF9Rmz2F6vayabfYWyf4';
+CHARACTERS_SHEET_ID = '0';
+PLAYERS_SHEET_ID = '1510652814';
+TIMELINE_SHEET_ID = '415116931';
+CHARACTERS_SHEET = 'Characters';
+PLAYERS_SHEET = 'Players';
+TIMELINE_SHEET = 'Timeline';
 
-const SPREADSHEET_ID = '1cbxNvmAEqEGeHtaf09ZaWV3YF9Rmz2F6vayabfYWyf4';
-const CHARACTERS_SHEET_ID = '0';
-const PLAYERS_SHEET_ID = '1510652814';
-const TIMELINE_SHEET_ID = '415116931';
-const CHARACTERS_SHEET = 'Characters';
-const PLAYERS_SHEET = 'Players';
-const TIMELINE_SHEET = 'Timeline';
+if (!DEV_MODE) require('dotenv').config();
 
 ///////////////////////////////Discord Setup///////////////////////////////////
 
@@ -89,4 +89,4 @@ function sendChunkedText(message, text, channel) {
   }
 }
 
-client.login((!global.DEV_MODE) ? process.env.TOKEN : config.token);
+client.login((!DEV_MODE) ? process.env.TOKEN : config.token);
