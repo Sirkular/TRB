@@ -34,16 +34,25 @@ module.exports = function() {
   * @param {string} valueName - The name of the value to query
   */
   operations.getCharacterValue = function(table, charName, valueName) {
-    const charColIndex = table[HEADER_ROW].indexOf(CHAR_COLUMN);
     const valueColIndex = table[HEADER_ROW].indexOf(valueName);
-    const charRowIndex = table.map(row => row[charColIndex]).indexOf(charName);
+    const charRowIndex = operations.getRowWithValue(table, CHAR_COLUMN, charName)
     if (charRowIndex === -1) return null;
     return table[charRowIndex][valueColIndex];
   };
 
-  operations.getPlayerValue = function(sheetObj, playerId, valueName) {
+  operations.getPlayerValue = function(table, playerId, valueName) {
 
   };
+
+  /**
+  * Gets the row index of the first row with value in the valueName column.
+  * @param {string} valueName - The column header
+  * @param {string} value - The value
+  */
+  operations.getRowWithValue = function(table, valueName, value) {
+    const valueColIndex = table[HEADER_ROW].indexOf(valueName);
+    return table.map(row => row[valueColIndex]).indexOf(value);
+  }
 
   return operations;
 }
