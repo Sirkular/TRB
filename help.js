@@ -10,17 +10,15 @@ module.exports = function() {
     if (!command) {
       return getCommands();
     }
-    else if (command === "info") {
-      let out = "";
-      out += commands[command];
-      out += "Get the MXP of character.\n";
-      return out;
-    }
-    else if (command === "add") {
-      let out = "";
-      out += commands[command];
-      out += "Add amount of resource to characters.\n";
-      out += "character_prefix is any prefix of a character\'s name, spaces not allowed. e.g. Irontank has Iron, Iront, Irontank as valid prefixes.";
+    else {
+      let out = commands[command];
+      if (command === "info") {
+        out += "Get the MXP of character.\n";
+      }
+      else if (command === "add") {
+        out += "Add amount of resource to characters.\n";
+        out += "character_prefix is any prefix of a character\'s name, spaces not allowed. e.g. Irontank has Iron, Iront, Irontank as valid prefixes.";
+      }
       return out;
     }
   }
