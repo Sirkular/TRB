@@ -14,7 +14,7 @@ module.exports = function() {
       if (!charName) resolve('No character name was given.')
       sheetOp.getSheet(CHARACTERS_SHEET)
         .then((table) => {
-          let mxp = sheetOp.getCharacterValue(table, charName, "MXP");
+          let mxp = sheetOp.getCharacterValue(table, charName, "MXP", true);
           if (mxp === null) resolve('No character by that name exists.');
           resolve("MXP: " + mxp);
         }).catch((err) => {console.log('getCharacterInfo error')});
