@@ -81,6 +81,11 @@ client.on('message', async message => {
       message.channel.send(output);
     });
   }
+  else if (command === 'add') {
+    commands.addCharacterValue(args).then((output) => {
+      message.channel.send(output);
+    });
+  }
   else {
     message.channel.send('Command not recognized.');
   }
