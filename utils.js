@@ -1,19 +1,20 @@
 module.exports = function() {
   let utils = {};
 
-  utils.genBatchUpdateBody = function(requests) {
+  utils.genBatchUpdateBody = function(auth, requests) {
     return {
       spreadsheetId: SPREADSHEET_ID,
       resource: {
         requests: requests,
         includeSpreadsheetInResponse: false
-      }
+      },
+      auth: auth
     };
   };
 
   /* values is an array of string or int to be pushed in.
   */
-  utils.genUpdateCells = function(values, sheetId, rowIndex, columnIndex) {
+  utils.genUpdateCellsRequest = function(values, sheetId, rowIndex, columnIndex) {
     var vals = [];
     for (let i = 0; i < values.length; i++) {
       if (!(typeof values[i] == 'number')) {
