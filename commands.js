@@ -4,9 +4,16 @@ module.exports = function() {
   const utils = require('./utils.js')();
 
   HEADER_ROW = 0;
-  ID_COLUMN = "ID";
-  CHAR_COLUMN = "CHAR_NAME";
-  MXP_COLUMN = "MXP"
+  ID_COLUMN = 'ID';
+  CHAR_COLUMN = 'CHAR_NAME';
+  MXP_COLUMN = 'MXP'
+
+  const MXP_THRESHOLDS = [0];
+  for (let i = 1; i <= 20; i++) {
+    const booster = Math.floor((i + 1) / 6)*10;
+    MXP_THRESHOLDS.push(MXP_THRESHOLDS[i - 1] + i*10 + booster);
+  }
+  MXP_THRESHOLDS.push(Number.MAX_SAFE_INTEGER);
 
   commands.getCharacterInfo = function(args) {
     return new Promise((resolve, reject) => {
@@ -14,10 +21,18 @@ module.exports = function() {
       if (!charName) resolve('No character name was given.')
       sheetOp.getSheet(CHARACTERS_SHEET)
         .then((table) => {
-          let mxp = sheetOp.getCharacterValue(table, charName, "MXP", true);
+          let mxp = parseInt(sheetOp.getCharacterValue(table, charName, 'MXP', true));
           if (mxp === null) resolve('No character by that name exists.');
-          resolve("MXP: " + mxp);
-        }).catch((err) => {console.log('getCharacterInfo error')});
+          let level = MXP_THRESHOLDS.indexOf(
+            MXP_THRESHOLDS.find((th) => {
+              return mxp <= th;
+            })
+          ) - 1;
+          let out = 'Level: ' + level + '\n';
+          out += 'Current MXP: ' + mxp + '\n';
+          out += 'MXP to next level: ' + (MXP_THRESHOLDS[level + 1] - mxp) + '\n';
+          resolve(out);
+        }).catch((err) => {console.log('getCharacterInfo error: ' + err)});
     });
   };
 
