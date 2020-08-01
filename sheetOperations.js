@@ -38,6 +38,16 @@ module.exports = function() {
   };
 
   /**
+  * Creates new character entry organized by player id
+  * @param {Array} table - The table to operate on
+  * @param {string} playerId - Discord id of character owner
+  * @param {string} charName - A character's nameChange
+  */
+  operations.createCharacter = function(table, playerId, charName) {
+    console.log(table);
+  }
+
+  /**
   * Gets a value for a character.
   * @param {Array} table - The table to operate on
   * @param {string} charName - A character's nameChange
@@ -71,6 +81,18 @@ module.exports = function() {
       if (val.toUpperCase().startsWith(value.toUpperCase())) return index;
       return -1;
     }, -1);
+  };
+
+  /**
+  * Gets the row index of the last row with value in the valueName column.
+  * @param {Array} table - The table to operate on
+  * @param {string} valueName - The column header
+  * @param {string} value - The value
+  */
+  operations.getRowWithValueLast = function(table, valueName, value) {
+    const valueColIndex = table[HEADER_ROW].indexOf(valueName);
+    const colArray = table.map(row => row[valueColIndex]);
+    return colArray.lastIndexOf(value);
   };
 
   return operations;

@@ -7,6 +7,7 @@ module.exports = function() {
   ID_COLUMN = 'ID';
   CHAR_COLUMN = 'CHAR_NAME';
   MXP_COLUMN = 'MXP'
+  HEADER_TAGS = [ID_COLUMN, CHAR_COLUMN, MXP_COLUMN]
 
   const MXP_THRESHOLDS = [0];
   for (let i = 1; i <= 20; i++) {
@@ -35,6 +36,51 @@ module.exports = function() {
         }).catch((err) => {console.log('getCharacterInfo error: ' + err)});
     });
   };
+
+  commands.registerCharacter = function(message, args) {
+    return new Promise((resolve, reject) => {
+      let charName = args.slice(1).join(' ');
+      let playerId = message.member.user.id;
+      let playerName = message.member.user.tag;
+      sheetOp.getSheet(CHARACTERS_SHEET)
+        .then((table) => {
+          let requests = [];
+          let playerRowIndex = sheetOp.getRowWithValueLast(table, ID_COLUMN, playerId, false);
+          // New Player
+          if (playerRowIndex === -1) {
+            let req = utils.genUpdateCellsRequest([playerId], CHARACTERS_SHEET_ID, table.length, 0);
+            requests.push(req);
+            req = utils.genUpdateCellsRequest([charName], CHARACTERS_SHEET_ID, table.length, 1);
+            requests.push(req);
+            for (i = 2; i < HEADER_TAGS.length; i++) {
+              req = utils.genUpdateCellsRequest([0], CHARACTERS_SHEET_ID, table.length, i);
+              requests.push(req);
+            };
+          }
+          // Existing Player
+          else {
+            let req = utils.genInsertRowRequest(false, CHARACTERS_SHEET_ID, playerRowIndex + 1, playerRowIndex + 2);
+            requests.push(req);
+            req = utils.genUpdateCellsRequest([playerId], CHARACTERS_SHEET_ID, playerRowIndex + 1, 0);
+            requests.push(req);
+            req = utils.genUpdateCellsRequest([charName], CHARACTERS_SHEET_ID, playerRowIndex + 1, 1);
+            requests.push(req);
+            for (i = 2; i < HEADER_TAGS.length; i++) {
+              req = utils.genUpdateCellsRequest([0], CHARACTERS_SHEET_ID, playerRowIndex + 1, i);
+              requests.push(req);
+            };
+          };
+
+          
+          sheetOp.sendRequests(requests).then(() => {
+            resolve('Successfully added values.');
+          }).catch(() => {
+            resolve('Error registering character.');
+          });
+        }).catch((err) => {console.log('registerCharacter error: ' + err)});
+      resolve('Registered ' + charName + ' for ' + message.member.user.toString() + '.')
+    });
+  }
 
   /**
   * Add a numerical amount of a value to character(s)

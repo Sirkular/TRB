@@ -43,5 +43,33 @@ module.exports = function() {
     };
   };
 
+  utils.genInsertRowRequest = function(inherit, sheetId, startIndex, endIndex) {
+    return {
+      insertDimension: {
+        range: {
+          sheetId: sheetId,
+          dimension: 'ROWS',
+          startIndex: startIndex,
+          endIndex: endIndex
+        },
+        inheritFromBefore: inherit
+      }
+    }
+  }
+
+  utils.genInsertColumnRequest = function(inherit, sheetId, startIndex, endIndex) {
+    return {
+      insertDimension: {
+        range: {
+          sheetId: sheetId,
+          dimension: 'COLUMNS',
+          startIndex: startIndex,
+          endIndex: endIndex
+        },
+        inheritFromBefore: inherit
+      }
+    }
+  }
+
   return utils;
 }
