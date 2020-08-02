@@ -70,15 +70,67 @@ module.exports = function() {
               requests.push(req);
             };
           };
-
           
           sheetOp.sendRequests(requests).then(() => {
-            resolve('Successfully added values.');
+            resolve('Registered ' + charName + ' for ' + message.member.user.toString() + '.');
           }).catch(() => {
             resolve('Error registering character.');
           });
         }).catch((err) => {console.log('registerCharacter error: ' + err)});
-      resolve('Registered ' + charName + ' for ' + message.member.user.toString() + '.')
+    });
+  }
+
+  commands.deleteCharacter = function(message, args) {
+    return new Promise((resolve, reject) => {
+      let charName = args.slice(1).join(' ');
+      let playerId = message.member.user.id;
+      let playerName = message.member.user.tag;
+      sheetOp.getSheet(CHARACTERS_SHEET)
+        .then((table) => {
+          let requests = [];
+          for (i = 1; i < table.length; i++) {
+            if (table[i][0] === playerId && table[i][1] === charName) {
+              let req = utils.genDeleteRowRequest(CHARACTERS_SHEET_ID, i, i + 1);
+              requests.push(req);
+              break;
+            };
+          };
+
+          // No rows found with matching discord id and character name
+          if (requests.length === 0) {
+            resolve('No character exists for ' + message.member.user.toString() + ' named: ' + charName);
+          }
+          else {
+            sheetOp.sendRequests(requests).then(() => {
+              resolve('Successfully deleted character.');
+            }).catch(() => {
+              resolve('Error deleting character.');
+            });
+            resolve('Deleted ' + charName + ' for ' + message.member.user.toString() + '.')
+          }
+        }).catch((err) => {console.log('deleteCharacter error: ' + err)});
+    });
+  }
+
+  commands.listCharacter = function(message, args) {
+    return new Promise((resolve, reject) => {
+      let playerId = message.member.user.id;
+      let playerName = message.member.user.tag;
+      let charList = [];
+      sheetOp.getSheet(CHARACTERS_SHEET)
+        .then((table) => {
+          for (i = 1; i < table.length; i++) {
+            if (table[i][0] === playerId) {
+              charList.push(table[i][1]);
+            };
+          };
+
+          if (charList.length === 0) {
+            resolve(message.member.user.toString() + ' has no characters registered yet!');
+          };
+
+          resolve('Registered characters for ' + message.member.user.toString() + ': ' + charList.join(', '));
+        }).catch((err) => {console.log('listCharacter error: ' + err)});
     });
   }
 

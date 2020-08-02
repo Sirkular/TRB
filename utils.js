@@ -71,5 +71,31 @@ module.exports = function() {
     }
   }
 
+  utils.genDeleteRowRequest = function(sheetId, startIndex, endIndex) {
+    return {
+      deleteDimension: {
+        range: {
+          sheetId: sheetId,
+          dimension: 'ROWS',
+          startIndex: startIndex,
+          endIndex: endIndex
+        }
+      }
+    }
+  }
+
+  utils.genDeleteColumnRequest = function(sheetId, startIndex, endIndex) {
+    return {
+      deleteDimension: {
+        range: {
+          sheetId: sheetId,
+          dimension: 'COLUMNS',
+          startIndex: startIndex,
+          endIndex: endIndex
+        }
+      }
+    }
+  }
+
   return utils;
 }
