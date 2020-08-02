@@ -38,16 +38,6 @@ module.exports = function() {
   };
 
   /**
-  * Creates new character entry organized by player id
-  * @param {Array} table - The table to operate on
-  * @param {string} playerId - Discord id of character owner
-  * @param {string} charName - A character's nameChange
-  */
-  operations.createCharacter = function(table, playerId, charName) {
-    console.log(table);
-  }
-
-  /**
   * Gets a value for a character.
   * @param {Array} table - The table to operate on
   * @param {string} charName - A character's nameChange
