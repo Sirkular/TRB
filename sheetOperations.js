@@ -52,7 +52,10 @@ module.exports = function() {
   };
 
   operations.getPlayerValue = function(table, playerId, valueName) {
-
+    const valueColIndex = table[HEADER_ROW].indexOf(valueName);
+    const charRowIndex = operations.getRowWithValue(table, ID_COLUMN, playerId, false)
+    if (charRowIndex === -1) return null;
+    return table[charRowIndex][valueColIndex];
   };
 
   /**

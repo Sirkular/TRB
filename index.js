@@ -77,7 +77,7 @@ client.on('message', async message => {
     sendChunkedText(message, help.getHelp(args), true)
   }
   else if (command === 'info') {
-    commands.getCharacterInfo(args).then((output) => {
+    commands.getCharacterInfo(message, args).then((output) => {
       message.channel.send(output);
     });
   }
