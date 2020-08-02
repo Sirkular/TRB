@@ -89,7 +89,7 @@ module.exports = function() {
   * @param {string} valueName - The column header
   * @param {string} value - The value
   */
-  operations.getRowWithValueLast = function(table, valueName, value) {
+  operations.getLastRowWithValue = function(table, valueName, value) {
     const valueColIndex = table[HEADER_ROW].indexOf(valueName);
     const colArray = table.map(row => row[valueColIndex]);
     return colArray.lastIndexOf(value);

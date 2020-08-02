@@ -7,7 +7,6 @@ module.exports = function() {
   ID_COLUMN = 'ID';
   CHAR_COLUMN = 'CHAR_NAME';
   MXP_COLUMN = 'MXP'
-  HEADER_TAGS = [ID_COLUMN, CHAR_COLUMN, MXP_COLUMN]
 
   const MXP_THRESHOLDS = [0];
   for (let i = 1; i <= 20; i++) {
@@ -44,15 +43,17 @@ module.exports = function() {
       let playerName = message.member.user.tag;
       sheetOp.getSheet(CHARACTERS_SHEET)
         .then((table) => {
+          let idRowIdx = table[HEADER_ROW].indexOf(ID_COLUMN);
+          let charNameRowIdx = table[HEADER_ROW].indexOf(CHAR_COLUMN);
           let requests = [];
-          let playerRowIndex = sheetOp.getRowWithValueLast(table, ID_COLUMN, playerId, false);
+          let playerRowIndex = sheetOp.getLastRowWithValue(table, ID_COLUMN, playerId, false);
           // New Player
           if (playerRowIndex === -1) {
-            let req = utils.genUpdateCellsRequest([playerId], CHARACTERS_SHEET_ID, table.length, 0);
+            let req = utils.genUpdateCellsRequest([playerId], CHARACTERS_SHEET_ID, table.length, idRowIdx);
             requests.push(req);
-            req = utils.genUpdateCellsRequest([charName], CHARACTERS_SHEET_ID, table.length, 1);
+            req = utils.genUpdateCellsRequest([charName], CHARACTERS_SHEET_ID, table.length, charNameRowIdx);
             requests.push(req);
-            for (i = 2; i < HEADER_TAGS.length; i++) {
+            for (i = 2; i < table[HEADER_ROW].length; i++) {
               req = utils.genUpdateCellsRequest([0], CHARACTERS_SHEET_ID, table.length, i);
               requests.push(req);
             };
@@ -61,11 +62,11 @@ module.exports = function() {
           else {
             let req = utils.genInsertRowRequest(false, CHARACTERS_SHEET_ID, playerRowIndex + 1, playerRowIndex + 2);
             requests.push(req);
-            req = utils.genUpdateCellsRequest([playerId], CHARACTERS_SHEET_ID, playerRowIndex + 1, 0);
+            req = utils.genUpdateCellsRequest([playerId], CHARACTERS_SHEET_ID, playerRowIndex + 1, idRowIdx);
             requests.push(req);
-            req = utils.genUpdateCellsRequest([charName], CHARACTERS_SHEET_ID, playerRowIndex + 1, 1);
+            req = utils.genUpdateCellsRequest([charName], CHARACTERS_SHEET_ID, playerRowIndex + 1, charNameRowIdx);
             requests.push(req);
-            for (i = 2; i < HEADER_TAGS.length; i++) {
+            for (i = 2; i < table[HEADER_ROW].length; i++) {
               req = utils.genUpdateCellsRequest([0], CHARACTERS_SHEET_ID, playerRowIndex + 1, i);
               requests.push(req);
             };
@@ -87,9 +88,11 @@ module.exports = function() {
       let playerName = message.member.user.tag;
       sheetOp.getSheet(CHARACTERS_SHEET)
         .then((table) => {
+          let idRowIdx = table[HEADER_ROW].indexOf(ID_COLUMN);
+          let charNameRowIdx = table[HEADER_ROW].indexOf(CHAR_COLUMN);
           let requests = [];
           for (i = 1; i < table.length; i++) {
-            if (table[i][0] === playerId && table[i][1] === charName) {
+            if (table[i][idRowIdx] === playerId && table[i][charNameRowIdx] === charName) {
               let req = utils.genDeleteRowRequest(CHARACTERS_SHEET_ID, i, i + 1);
               requests.push(req);
               break;
@@ -119,9 +122,11 @@ module.exports = function() {
       let charList = [];
       sheetOp.getSheet(CHARACTERS_SHEET)
         .then((table) => {
+          let idRowIdx = table[HEADER_ROW].indexOf(ID_COLUMN);
+          let charNameRowIdx = table[HEADER_ROW].indexOf(CHAR_COLUMN);
           for (i = 1; i < table.length; i++) {
-            if (table[i][0] === playerId) {
-              charList.push(table[i][1]);
+            if (table[i][idRowIdx] === playerId) {
+              charList.push(table[i][charNameRowIdx]);
             };
           };
 
