@@ -2,7 +2,8 @@ module.exports = function() {
   const help = {};
   const commands = {
     "add":  "\`add resource amount character_prefix1 character_prefix2 ...\`\n",
-    "info": "\`info character_prefix1\`\n"
+    "info": "\`info character_prefix1\`\n",
+    "char": "\`char register character_name \/ char delete character_name \/ char list\`\n"
   };
 
   help.getHelp = function(args) {
@@ -18,6 +19,9 @@ module.exports = function() {
       else if (command === "add") {
         out += "Add amount of resource to characters.\n";
         out += "character_prefix is any prefix of a character\'s name, spaces not allowed. e.g. Irontank has Iron, Iront, Irontank as valid prefixes.";
+      }
+      else if (command === "char") {
+        out += "General character command. Allows register, delete, and list.\n"
       }
       return out;
     }

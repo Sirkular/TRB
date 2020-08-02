@@ -36,6 +36,109 @@ module.exports = function() {
     });
   };
 
+  commands.registerCharacter = function(message, args) {
+    return new Promise((resolve, reject) => {
+      let charName = args.slice(1).join(' ');
+      let playerId = message.member.user.id;
+      let playerName = message.member.user.tag;
+      sheetOp.getSheet(CHARACTERS_SHEET)
+        .then((table) => {
+          let idRowIdx = table[HEADER_ROW].indexOf(ID_COLUMN);
+          let charNameRowIdx = table[HEADER_ROW].indexOf(CHAR_COLUMN);
+          let requests = [];
+          let playerRowIndex = sheetOp.getLastRowWithValue(table, ID_COLUMN, playerId, false);
+          // New Player
+          if (playerRowIndex === -1) {
+            let req = utils.genUpdateCellsRequest([playerId], CHARACTERS_SHEET_ID, table.length, idRowIdx);
+            requests.push(req);
+            req = utils.genUpdateCellsRequest([charName], CHARACTERS_SHEET_ID, table.length, charNameRowIdx);
+            requests.push(req);
+            for (i = 2; i < table[HEADER_ROW].length; i++) {
+              req = utils.genUpdateCellsRequest([0], CHARACTERS_SHEET_ID, table.length, i);
+              requests.push(req);
+            };
+          }
+          // Existing Player
+          else {
+            let req = utils.genInsertRowRequest(false, CHARACTERS_SHEET_ID, playerRowIndex + 1, playerRowIndex + 2);
+            requests.push(req);
+            req = utils.genUpdateCellsRequest([playerId], CHARACTERS_SHEET_ID, playerRowIndex + 1, idRowIdx);
+            requests.push(req);
+            req = utils.genUpdateCellsRequest([charName], CHARACTERS_SHEET_ID, playerRowIndex + 1, charNameRowIdx);
+            requests.push(req);
+            for (i = 2; i < table[HEADER_ROW].length; i++) {
+              req = utils.genUpdateCellsRequest([0], CHARACTERS_SHEET_ID, playerRowIndex + 1, i);
+              requests.push(req);
+            };
+          };
+          
+          sheetOp.sendRequests(requests).then(() => {
+            resolve('Registered ' + charName + ' for ' + message.member.user.toString() + '.');
+          }).catch(() => {
+            resolve('Error registering character.');
+          });
+        }).catch((err) => {console.log('registerCharacter error: ' + err)});
+    });
+  }
+
+  commands.deleteCharacter = function(message, args) {
+    return new Promise((resolve, reject) => {
+      let charName = args.slice(1).join(' ');
+      let playerId = message.member.user.id;
+      let playerName = message.member.user.tag;
+      sheetOp.getSheet(CHARACTERS_SHEET)
+        .then((table) => {
+          let idRowIdx = table[HEADER_ROW].indexOf(ID_COLUMN);
+          let charNameRowIdx = table[HEADER_ROW].indexOf(CHAR_COLUMN);
+          let requests = [];
+          for (i = 1; i < table.length; i++) {
+            if (table[i][idRowIdx] === playerId && table[i][charNameRowIdx] === charName) {
+              let req = utils.genDeleteRowRequest(CHARACTERS_SHEET_ID, i, i + 1);
+              requests.push(req);
+              break;
+            };
+          };
+
+          // No rows found with matching discord id and character name
+          if (requests.length === 0) {
+            resolve('No character exists for ' + message.member.user.toString() + ' named: ' + charName);
+          }
+          else {
+            sheetOp.sendRequests(requests).then(() => {
+              resolve('Successfully deleted character.');
+            }).catch(() => {
+              resolve('Error deleting character.');
+            });
+            resolve('Deleted ' + charName + ' for ' + message.member.user.toString() + '.')
+          }
+        }).catch((err) => {console.log('deleteCharacter error: ' + err)});
+    });
+  }
+
+  commands.listCharacter = function(message, args) {
+    return new Promise((resolve, reject) => {
+      let playerId = message.member.user.id;
+      let playerName = message.member.user.tag;
+      let charList = [];
+      sheetOp.getSheet(CHARACTERS_SHEET)
+        .then((table) => {
+          let idRowIdx = table[HEADER_ROW].indexOf(ID_COLUMN);
+          let charNameRowIdx = table[HEADER_ROW].indexOf(CHAR_COLUMN);
+          for (i = 1; i < table.length; i++) {
+            if (table[i][idRowIdx] === playerId) {
+              charList.push(table[i][charNameRowIdx]);
+            };
+          };
+
+          if (charList.length === 0) {
+            resolve(message.member.user.toString() + ' has no characters registered yet!');
+          };
+
+          resolve('Registered characters for ' + message.member.user.toString() + ': ' + charList.join(', '));
+        }).catch((err) => {console.log('listCharacter error: ' + err)});
+    });
+  }
+
   /**
   * Add a numerical amount of a value to character(s)
   * args format: (valueName, amount, character prefixes...)

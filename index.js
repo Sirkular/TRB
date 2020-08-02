@@ -81,6 +81,23 @@ client.on('message', async message => {
       message.channel.send(output);
     });
   }
+  else if (command === 'char') {
+    if (args[0] === 'register') {
+      commands.registerCharacter(message, args).then((output) => {
+        message.channel.send(output);
+      });
+    }
+    else if (args[0] === 'delete') {
+      commands.deleteCharacter(message, args).then((output) => {
+        message.channel.send(output);
+      });
+    }
+    else if (args[0] === 'list') {
+      commands.listCharacter(message, args).then((output) => {
+        message.channel.send(output);
+      });
+    }
+  }
   else if (command === 'add') {
     commands.addCharacterValue(args).then((output) => {
       message.channel.send(output);
