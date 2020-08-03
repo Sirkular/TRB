@@ -69,6 +69,10 @@ client.on('message', async message => {
   }
 
   /////////////////////////////////Commands////////////////////////////////////
+  function sendToChannel(output) {
+    message.channel.send(output);
+  }
+
   if(command === "ping") {
     const m = await message.channel.send("Ping?");
     m.edit(`Pong! Latency is ${m.createdTimestamp - message.createdTimestamp}ms. API Latency is ${Math.round(client.ping)}ms`);
@@ -77,34 +81,24 @@ client.on('message', async message => {
     sendChunkedText(message, help.getHelp(args), true)
   }
   else if (command === 'info') {
-    commands.getCharacterInfo(args).then((output) => {
-      message.channel.send(output);
-    });
+    commands.getCharacterInfo(args).then(sendToChannel);
   }
   else if (command === 'char') {
     if (args[0] === 'register') {
-      commands.registerCharacter(message, args).then((output) => {
-        message.channel.send(output);
-      });
+      commands.registerCharacter(message, args).then(sendToChannel);
     }
     else if (args[0] === 'delete') {
-      commands.deleteCharacter(message, args).then((output) => {
-        message.channel.send(output);
-      });
+      commands.deleteCharacter(message, args).then(sendToChannel);
     }
     else if (args[0] === 'list') {
-      commands.listCharacter(message, args).then((output) => {
-        message.channel.send(output);
-      });
+      commands.listCharacter(message, args).then(sendToChannel);
     }
   }
   else if (command === 'add') {
-    commands.addCharacterValue(args).then((output) => {
-      message.channel.send(output);
-    });
+    commands.addCharacterValue(args).then(sendToChannel);
   }
   else {
-    message.channel.send('Command not recognized.');
+    sendToChannel('Command not recognized.');
   }
 });
 
