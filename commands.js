@@ -41,43 +41,64 @@ module.exports = function() {
       let charName = args.slice(1).join(' ');
       let playerId = message.member.user.id;
       let playerName = message.member.user.tag;
-      sheetOp.getSheet(CHARACTERS_SHEET)
-        .then((table) => {
-          let idRowIdx = table[HEADER_ROW].indexOf(ID_COLUMN);
-          let charNameRowIdx = table[HEADER_ROW].indexOf(CHAR_COLUMN);
+      Promise.all([sheetOp.getSheet(CHARACTERS_SHEET), sheetOp.getSheet(TIMELINE_SHEET)])
+        .then(([charactersTable, timelineTable]) => {
           let requests = [];
-          let playerRowIndex = sheetOp.getLastRowWithValue(table, ID_COLUMN, playerId, false);
-          // New Player
-          if (playerRowIndex === -1) {
-            let req = utils.genUpdateCellsRequest([playerId], CHARACTERS_SHEET_ID, table.length, idRowIdx);
+          requests = requests.concat(charactersRegistration(charactersTable));
+          requests = requests.concat(timelineRegistration(timelineTable));
+          return requests;
+        })
+        .then(sheetOp.sendRequests)
+        .then(() => {
+          resolve('Registered ' + charName + ' for ' + message.member.user.toString() + '.');
+        })
+        .catch((err) => {
+          console.log('registerCharacter error: ' + err);
+          resolve('Bot error: registering character failed.')
+        });
+
+
+      function charactersRegistration(table) {
+        let idRowIdx = table[HEADER_ROW].indexOf(ID_COLUMN);
+        let charNameRowIdx = table[HEADER_ROW].indexOf(CHAR_COLUMN);
+        let requests = [];
+        let playerRowIndex = sheetOp.getLastRowWithValue(table, ID_COLUMN, playerId, false);
+        // New Player
+        if (playerRowIndex === -1) {
+          let req = utils.genUpdateCellsRequest([playerId], CHARACTERS_SHEET_ID, table.length, idRowIdx);
+          requests.push(req);
+          req = utils.genUpdateCellsRequest([charName], CHARACTERS_SHEET_ID, table.length, charNameRowIdx);
+          requests.push(req);
+          for (i = 2; i < table[HEADER_ROW].length; i++) {
+            req = utils.genUpdateCellsRequest([0], CHARACTERS_SHEET_ID, table.length, i);
             requests.push(req);
-            req = utils.genUpdateCellsRequest([charName], CHARACTERS_SHEET_ID, table.length, charNameRowIdx);
-            requests.push(req);
-            for (i = 2; i < table[HEADER_ROW].length; i++) {
-              req = utils.genUpdateCellsRequest([0], CHARACTERS_SHEET_ID, table.length, i);
-              requests.push(req);
-            };
-          }
-          // Existing Player
-          else {
-            let req = utils.genInsertRowRequest(false, CHARACTERS_SHEET_ID, playerRowIndex + 1, playerRowIndex + 2);
-            requests.push(req);
-            req = utils.genUpdateCellsRequest([playerId], CHARACTERS_SHEET_ID, playerRowIndex + 1, idRowIdx);
-            requests.push(req);
-            req = utils.genUpdateCellsRequest([charName], CHARACTERS_SHEET_ID, playerRowIndex + 1, charNameRowIdx);
-            requests.push(req);
-            for (i = 2; i < table[HEADER_ROW].length; i++) {
-              req = utils.genUpdateCellsRequest([0], CHARACTERS_SHEET_ID, playerRowIndex + 1, i);
-              requests.push(req);
-            };
           };
-          
-          sheetOp.sendRequests(requests).then(() => {
-            resolve('Registered ' + charName + ' for ' + message.member.user.toString() + '.');
-          }).catch(() => {
-            resolve('Error registering character.');
-          });
-        }).catch((err) => {console.log('registerCharacter error: ' + err)});
+        }
+        // Existing Player
+        else {
+          let req = utils.genInsertRowRequest(false, CHARACTERS_SHEET_ID, playerRowIndex + 1, playerRowIndex + 2);
+          requests.push(req);
+          req = utils.genUpdateCellsRequest([playerId], CHARACTERS_SHEET_ID, playerRowIndex + 1, idRowIdx);
+          requests.push(req);
+          req = utils.genUpdateCellsRequest([charName], CHARACTERS_SHEET_ID, playerRowIndex + 1, charNameRowIdx);
+          requests.push(req);
+          for (i = 2; i < table[HEADER_ROW].length; i++) {
+            req = utils.genUpdateCellsRequest([0], CHARACTERS_SHEET_ID, playerRowIndex + 1, i);
+            requests.push(req);
+          };
+        };
+        return requests;
+      }
+
+      function timelineRegistration(table) {
+        let charNameRowIdx = table[HEADER_ROW].indexOf(CHAR_COLUMN);
+        let requests = [];
+        const lastRow = table.length;
+        const sheetId = TIMELINE_SHEET_ID;
+        requests.push(utils.genInsertRowRequest(false, sheetId, lastRow, lastRow + 1));
+        requests.push(utils.genUpdateCellsRequest([charName], sheetId, lastRow, charNameRowIdx));
+        return requests;
+      }
     });
   }
 
