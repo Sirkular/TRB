@@ -7,6 +7,9 @@ module.exports = function() {
   ID_COLUMN = 'ID';
   CHAR_COLUMN = 'CHAR_NAME';
   MXP_COLUMN = 'MXP'
+  TIMELINE_START_COLUMN = 'TIMELINE_START';
+  DEBUT_COLUMN = 'DEBUT';
+  TIMELINE_ACTIVITY_PLACEHOLDER = '---'
 
   const MXP_THRESHOLDS = [0];
   for (let i = 1; i <= 20; i++) {
@@ -76,14 +79,14 @@ module.exports = function() {
         }
         // Existing Player
         else {
-          let req = utils.genInsertRowRequest(false, CHARACTERS_SHEET_ID, playerRowIndex + 1, playerRowIndex + 2);
+          let req = utils.genInsertRowRequest(false, CHARACTERS_SHEET_ID, playerRowIndex, playerRowIndex + 1);
           requests.push(req);
-          req = utils.genUpdateCellsRequest([playerId], CHARACTERS_SHEET_ID, playerRowIndex + 1, idRowIdx);
+          req = utils.genUpdateCellsRequest([playerId], CHARACTERS_SHEET_ID, playerRowIndex, idRowIdx);
           requests.push(req);
-          req = utils.genUpdateCellsRequest([charName], CHARACTERS_SHEET_ID, playerRowIndex + 1, charNameRowIdx);
+          req = utils.genUpdateCellsRequest([charName], CHARACTERS_SHEET_ID, playerRowIndex, charNameRowIdx);
           requests.push(req);
           for (i = 2; i < table[HEADER_ROW].length; i++) {
-            req = utils.genUpdateCellsRequest([0], CHARACTERS_SHEET_ID, playerRowIndex + 1, i);
+            req = utils.genUpdateCellsRequest([0], CHARACTERS_SHEET_ID, playerRowIndex, i);
             requests.push(req);
           };
         };
@@ -93,7 +96,8 @@ module.exports = function() {
       function timelineRegistration(table) {
         let charNameRowIdx = table[HEADER_ROW].indexOf(CHAR_COLUMN);
         let requests = [];
-        const lastRow = table.length;
+        const lastRow = table.length - 1;
+        console.log(lastRow)
         const sheetId = TIMELINE_SHEET_ID;
         requests.push(utils.genInsertRowRequest(false, sheetId, lastRow, lastRow + 1));
         requests.push(utils.genUpdateCellsRequest([charName], sheetId, lastRow, charNameRowIdx));
@@ -193,6 +197,119 @@ module.exports = function() {
           resolve('Error adding value to character(s).');
         });
     });
+  }
+
+  /**
+  * If multiple characters are advanced, sync all characters' timeline to
+  * character farthest in the future with the downtime reason, then add the
+  * number of days.
+  */
+  commands.advanceTimeline = function(args) {
+    const daysIndex = args.findIndex(val => !isNaN(parseInt(val)));
+    const chars = args.slice(0, daysIndex);
+    const days = parseInt(args[daysIndex]);
+    const startingDay = parseInt(args[daysIndex + 1]);
+    const reason = args.slice(daysIndex + (isNaN(startingDay) ? 1 : 2)).join(' ');
+    if (!(days && reason && chars.length)) return Promise.resolve('One of days, reason, or prefix was not provided.');
+    // Ensure startingDay is after character farthest in the future.
+    // If no character has debuted and startingDay is not defined... error.
+    return sheetOp.getSheet(TIMELINE_SHEET)
+      .then((table) => {
+        let charRows = chars.map((char) => {
+          return sheetOp.getRowWithValue(table, CHAR_COLUMN, char, true);
+        });
+        let charDays = chars.map((char) => {
+          return getPresentDay(table, char);
+        });
+        if (!charDays.some(day => day !== -1) && isNaN(startingDay))
+          return 'Every character is debuting but no starting day was provided.';
+        let baseline = -1;
+        charDays.forEach((day) => {
+          baseline = Math.max(baseline, day);
+        });
+
+        const timelineStartIdx = table[HEADER_ROW].indexOf(TIMELINE_START_COLUMN);
+        if (!isNaN(startingDay)) {
+          if (baseline > startingDay + timelineStartIdx)
+            return 'Given starting day was before ' + chars[charDays.indexOf(baseline)] + '\'s present day: day ' + (baseline - timelineStartIdx);
+          baseline = startingDay + timelineStartIdx;
+        }
+
+        let requests = [];
+        charDays.forEach((day, index) => {
+          let values = [];
+          if (day === -1) { // New character, fresh debut.
+            const debutIdx = table[HEADER_ROW].indexOf(DEBUT_COLUMN);
+            requests.push(utils.genUpdateCellsRequest([baseline], TIMELINE_SHEET_ID, charRows[index], debutIdx));
+            day = baseline;
+          }
+          else if (day < baseline) { // Sync character to latest character by filling in with downtime.
+            values = ['Downtime'];
+            for (let i = day + 1; i < baseline; i++) {
+              values.push(TIMELINE_ACTIVITY_PLACEHOLDER);
+            }
+          }
+          values.push(reason);
+          for (let i = baseline + 1; i < baseline + days; i++) {
+            values.push(TIMELINE_ACTIVITY_PLACEHOLDER);
+          }
+          requests.push(utils.genUpdateCellsRequest(values, TIMELINE_SHEET_ID, charRows[index], day));
+        });
+
+        sheetOp.sendRequests(requests);
+      })
+      .then((msg) => {
+        return msg ? msg : ('Timeline advanced for ' + chars.join(', '));
+      })
+      .catch((err) => {
+        console.log(err);
+        return 'Bot error: advancing timeline failed.'
+      });
+
+    /**
+    * Get the character's current day. If a fresh character, stop.
+    */
+    function getPresentDay(table, charPrefix) {
+      const charRow = sheetOp.getRowWithValue(table, CHAR_COLUMN, charPrefix, true);
+      const debutIdx = table[HEADER_ROW].indexOf(DEBUT_COLUMN);
+      const debutDay = parseInt(table[charRow][debutIdx]);
+      if (isNaN(debutDay)) return -1;
+      let day;
+      for (day = debutDay; day < table[charRow].length; day++) {
+        if (!table[charRow][day]) return day;
+      }
+      return day;
+    }
+  }
+
+  /**
+  * Query what a character is doing on a day.
+  */
+  commands.queryTimeline = function(args) {
+    const day = parseInt(args[0]);
+    const charPrefix = args[1];
+    return sheetOp.getSheet(TIMELINE_SHEET)
+      .then((table) => {
+        const charRow = sheetOp.getRowWithValue(table, CHAR_COLUMN, charPrefix, true);
+        if (charRow === -1) return 'Character doesn\'t exist.';
+        const timelineStartIdx = table[HEADER_ROW].indexOf(TIMELINE_START_COLUMN);
+        const debutIdx = table[HEADER_ROW].indexOf(DEBUT_COLUMN);
+        if (day < table[charRow][debutIdx]) return 'Before debut.'
+        if (table[charRow].length <= timelineStartIdx + day || !table[charRow][timelineStartIdx + day]) return 'Future';
+        for (let i = timelineStartIdx + day; i >= timelineStartIdx; i--) {
+          const activity = table[charRow][i];
+          if (activity !== TIMELINE_ACTIVITY_PLACEHOLDER) return activity;
+        }
+        return 'Character has no timeline.';
+      })
+  }
+
+  /**
+  * Set the downtime activity for a stretch of free downtime.
+  */
+  commands.setDowntime = function(args) {
+
+    //startingDay, days
   }
 
   return commands;

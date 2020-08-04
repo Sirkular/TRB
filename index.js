@@ -97,6 +97,18 @@ client.on('message', async message => {
   else if (command === 'add') {
     commands.addCharacterValue(args).then(sendToChannel);
   }
+  else if (command === 'timeline') {
+    switch(args[0]) {
+      case 'advance':
+        commands.advanceTimeline(args.slice(1)).then(sendToChannel);
+        break;
+      case 'query':
+        commands.queryTimeline(args.slice(1)).then(sendToChannel);
+        break;
+      default:
+        sendToChannel('Please provide one of the following:');
+    }
+  }
   else {
     sendToChannel('Command not recognized.');
   }
