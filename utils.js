@@ -97,5 +97,16 @@ module.exports = function() {
     }
   }
 
+  // row is a boolean, num is the number of rows/cols to add
+  utils.genAppendDimRequest = function(sheetId, row, num) {
+    return {
+      appendDimension: {
+        sheetId: sheetId,
+        dimension: row ? 'ROWS' : 'COLUMNS',
+        length: num
+      }
+    }
+  }
+
   return utils;
 }
