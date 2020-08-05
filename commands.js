@@ -68,7 +68,9 @@ module.exports = function() {
         let playerRowIndex = sheetOp.getLastRowWithValue(table, ID_COLUMN, playerId, false);
         // New Player
         if (playerRowIndex === -1) {
-          let req = utils.genUpdateCellsRequest([playerId], CHARACTERS_SHEET_ID, table.length, idRowIdx);
+          let req = utils.genAppendDimRequest(CHARACTERS_SHEET_ID, true, 1);
+          requests.push(req);
+          req = utils.genUpdateCellsRequest([playerId], CHARACTERS_SHEET_ID, table.length, idRowIdx);
           requests.push(req);
           req = utils.genUpdateCellsRequest([charName], CHARACTERS_SHEET_ID, table.length, charNameRowIdx);
           requests.push(req);
@@ -79,7 +81,7 @@ module.exports = function() {
         }
         // Existing Player
         else {
-          let req = utils.genInsertRowRequest(false, CHARACTERS_SHEET_ID, playerRowIndex, playerRowIndex + 1);
+          let req = utils.genAppendDimRequest(CHARACTERS_SHEET_ID, true, 1);
           requests.push(req);
           req = utils.genUpdateCellsRequest([playerId], CHARACTERS_SHEET_ID, playerRowIndex, idRowIdx);
           requests.push(req);
@@ -96,11 +98,9 @@ module.exports = function() {
       function timelineRegistration(table) {
         let charNameRowIdx = table[HEADER_ROW].indexOf(CHAR_COLUMN);
         let requests = [];
-        const lastRow = table.length - 1;
-        console.log(lastRow)
         const sheetId = TIMELINE_SHEET_ID;
-        requests.push(utils.genInsertRowRequest(false, sheetId, lastRow, lastRow + 1));
-        requests.push(utils.genUpdateCellsRequest([charName], sheetId, lastRow, charNameRowIdx));
+        requests.push(utils.genAppendDimRequest(TIMELINE_SHEET_ID, true, 1));
+        requests.push(utils.genUpdateCellsRequest([charName], sheetId, table.length, charNameRowIdx));
         return requests;
       }
     });
