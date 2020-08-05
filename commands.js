@@ -236,6 +236,16 @@ module.exports = function() {
         }
 
         let requests = [];
+
+        if (table[HEADER_ROW].length <= baseline + days) {
+          let values = [];
+          for (let i = table[HEADER_ROW].length; i < baseline + days; i++) {
+            values.push('Day ' + (i - timelineStartIdx));
+          }
+          requests.push(utils.genAppendDimRequest(TIMELINE_SHEET_ID, false, baseline + days - table[HEADER_ROW].length));
+          requests.push(utils.genUpdateCellsRequest(values, TIMELINE_SHEET_ID, HEADER_ROW, table[HEADER_ROW].length));
+        }
+
         charDays.forEach((day, index) => {
           let values = [];
           if (day === -1) { // New character, fresh debut.
