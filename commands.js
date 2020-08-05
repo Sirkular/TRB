@@ -25,32 +25,39 @@ module.exports = function() {
       let charName = args[0];
       let playerId = message.member.user.id;
       if (!charName) resolve('No character name was given.')
+      sheetOp.getSheet(CHARACTERS_SHEET)
+        .then((table) => {
+          let mxp = parseInt(sheetOp.getValue(table, CHAR_COLUMN, charName, 'MXP', true));
+          if (mxp === null) resolve('No character by that name exists.');
+          let level = MXP_THRESHOLDS.indexOf(
+            MXP_THRESHOLDS.find((th) => {
+              return mxp <= th;
+            })
+          ) - 1;
+
+          let out = 'Level: ' + level + '\n';
+          out += 'Current MXP: ' + mxp + '\n';
+          out += 'MXP to next level: ' + (MXP_THRESHOLDS[level + 1] - mxp) + '\n';
+          resolve(out);
+        }).catch((err) => {console.log('getCharacterInfo error: ' + err)});
+    });
+  };
+
+  commands.getPlayerInfo = function(message, args) {
+    return new Promise((resolve, reject) => {
+      let playerId = message.member.user.id;
       sheetOp.getSheet(PLAYERS_SHEET)
         .then((player_table) => {
-        sheetOp.getSheet(CHARACTERS_SHEET)
-          .then((character_table) => {
-            let mxp = parseInt(sheetOp.getCharacterValue(character_table, charName, 'MXP', true));
-            if (mxp === null) resolve('No character by that name exists.');
-            let level = MXP_THRESHOLDS.indexOf(
-              MXP_THRESHOLDS.find((th) => {
-                return mxp <= th;
-              })
-            ) - 1;
+          let lifetimeTrb = parseInt(sheetOp.getValue(player_table, ID_COLUMN, playerId, 'TRB_DM'))
+            + parseInt(sheetOp.getValue(player_table, ID_COLUMN, playerId, 'TRB_PLAYER'))
+            + parseInt(sheetOp.getValue(player_table, ID_COLUMN, playerId, 'TRB_SPECIAL'));
+          let availableTrb = lifetimeTrb
+            - parseInt(sheetOp.getValue(player_table, ID_COLUMN, playerId, 'TRB_SPENT'))
+            - parseInt(sheetOp.getValue(player_table, ID_COLUMN, playerId, 'TRB_LOST'));
 
-            let lifetimeTrb = parseInt(sheetOp.getPlayerValue(player_table, playerId, 'TRB_DM'))
-              + parseInt(sheetOp.getPlayerValue(player_table, playerId, 'TRB_PLAYER'))
-              + parseInt(sheetOp.getPlayerValue(player_table, playerId, 'TRB_SPECIAL'));
-            let availableTrb = lifetimeTrb
-              - parseInt(sheetOp.getPlayerValue(player_table, playerId, 'TRB_SPENT'))
-              - parseInt(sheetOp.getPlayerValue(player_table, playerId, 'TRB_LOST'));
-
-            let out = 'Level: ' + level + '\n';
-            out += 'Current MXP: ' + mxp + '\n';
-            out += 'MXP to next level: ' + (MXP_THRESHOLDS[level + 1] - mxp) + '\n';
-            out += 'Available TRB: ' + availableTrb + '\n';
-            out += 'Lifetime TRB: ' + lifetimeTrb + '\n';
-            resolve(out);
-          }).catch((err) => {console.log('getCharacterInfo error: ' + err)});
+          let out = 'Available TRB: ' + availableTrb + '\n';
+          out += 'Lifetime TRB: ' + lifetimeTrb + '\n';
+          resolve(out);
         }).catch((err) => {console.log('getCharacterInfo error: ' + err)});
     });
   };
@@ -69,11 +76,6 @@ module.exports = function() {
           let playerRowIndex = sheetOp.getLastRowWithValue(table, ID_COLUMN, playerId, false);
           // New Player
           if (playerRowIndex === -1) {
-            // Adding New Player to Player Sheet
-            commands.registerPlayer(message, args).then((output) => {
-              message.channel.send(output);
-            });
-
             let playerArr = [];
             for (i = 0; i < headerTags.length; i++) {
               if (headerTags[i] === ID_COLUMN) {
@@ -86,7 +88,9 @@ module.exports = function() {
                 playerArr.push(0);
               }
             }
-            let req = utils.genUpdateCellsRequest(playerArr, CHARACTERS_SHEET_ID, table.length, idRowIdx);
+            let req = utils.genAppendDimRequest(CHARACTERS_SHEET_ID, table.length, 1);
+            requests.push(req);
+            req = utils.genUpdateCellsRequest(playerArr, CHARACTERS_SHEET_ID, table.length, idRowIdx);
             requests.push(req);
           }
           // Existing Player
@@ -128,25 +132,36 @@ module.exports = function() {
           let headerTags = table[HEADER_ROW];
           let idRowIdx = headerTags.indexOf(ID_COLUMN);
           let playerArr = [];
-          for (i = 0; i < headerTags.length; i++) {
-            if (headerTags[i] === ID_COLUMN) {
-              playerArr.push(playerId);
-            }
-            else {
-              playerArr.push(0);
+          let newPlayer = true;
+          for (i = 0; i < table.length; i++) {
+            if (table[i][idRowIdx] == playerId) {
+              newPlayer = false;
             }
           }
-          let req = utils.genUpdateCellsRequest(playerArr, PLAYERS_SHEET_ID, table.length, idRowIdx);
-          requests.push(req);
 
-          sheetOp.sendRequests(requests).then(() => {
-            resolve('Registered ' + message.member.user.toString() + '.');
-          }).catch(() => {
-            resolve('Error registering player.');
-          });
+          if (newPlayer) {
+            for (i = 0; i < headerTags.length; i++) {
+              if (headerTags[i] === ID_COLUMN) {
+                playerArr.push(playerId);
+              }
+              else {
+                playerArr.push(0);
+              }
+            }
+            let req = utils.genAppendDimRequest(PLAYERS_SHEET_ID, table.length, 1);
+            requests.push(req)
+            req = utils.genUpdateCellsRequest(playerArr, PLAYERS_SHEET_ID, table.length, idRowIdx);
+            requests.push(req);
+
+            sheetOp.sendRequests(requests).then(() => {
+              resolve('Registered ' + message.member.user.toString() + '.');
+            }).catch(() => {
+              resolve('Error registering player.');
+            });
+          }
         }).catch((err) => {console.log('registerPlayer error: ' + err)});
     })
-  }
+  };
 
   commands.deleteCharacter = function(message, args) {
     return new Promise((resolve, reject) => {
@@ -210,7 +225,7 @@ module.exports = function() {
   * Add a numerical amount of a value to character(s)
   * args format: (valueName, amount, character prefixes...)
   */
-  commands.addCharacterValue = function(args) {
+  commands.addValue = function(args) {
     return new Promise((resolve, reject) => {
       let valueName = args[0].toUpperCase();
       let amount = 0;
@@ -259,7 +274,7 @@ module.exports = function() {
             resolve('Error adding value to character(s).');
           });
         }).catch((err) => {
-          console.error('addCharacterValue error: ' + err);
+          console.error('addValue error: ' + err);
           resolve('Error adding value to character(s).');
         });
     });

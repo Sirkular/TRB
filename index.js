@@ -77,12 +77,22 @@ client.on('message', async message => {
     sendChunkedText(message, help.getHelp(args), true)
   }
   else if (command === 'info') {
-    commands.getCharacterInfo(message, args).then((output) => {
-      message.channel.send(output);
-    });
+    if (args.length == 0) {
+      commands.getPlayerInfo(message, args).then((output) => {
+        message.channel.send(output);
+      });
+    }
+    else {
+      commands.getCharacterInfo(message, args).then((output) => {
+        message.channel.send(output);
+      });
+    }
   }
   else if (command === 'char') {
     if (args[0] === 'register') {
+      commands.registerPlayer(message, args).then((output) => {
+        message.channel.send(output);
+      });
       commands.registerCharacter(message, args).then((output) => {
         message.channel.send(output);
       });
@@ -99,7 +109,7 @@ client.on('message', async message => {
     }
   }
   else if (command === 'add') {
-    commands.addCharacterValue(args).then((output) => {
+    commands.addValue(args).then((output) => {
       message.channel.send(output);
     });
   }

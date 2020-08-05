@@ -44,16 +44,9 @@ module.exports = function() {
   * @param {string} valueName - The name of the value to query
   * @param {boolean} [prefix] - A flag to designate checking for prefix instead of matching
   */
-  operations.getCharacterValue = function(table, charName, valueName, prefix) {
+  operations.getValue = function(table, columnName, value, valueName, prefix) {
     const valueColIndex = table[HEADER_ROW].indexOf(valueName);
-    const charRowIndex = operations.getRowWithValue(table, CHAR_COLUMN, charName, prefix)
-    if (charRowIndex === -1) return null;
-    return table[charRowIndex][valueColIndex];
-  };
-
-  operations.getPlayerValue = function(table, playerId, valueName) {
-    const valueColIndex = table[HEADER_ROW].indexOf(valueName);
-    const charRowIndex = operations.getRowWithValue(table, ID_COLUMN, playerId, false)
+    const charRowIndex = operations.getRowWithValue(table, columnName, value, prefix)
     if (charRowIndex === -1) return null;
     return table[charRowIndex][valueColIndex];
   };
@@ -65,8 +58,8 @@ module.exports = function() {
   * @param {string} value - The value
   * @param {boolean} [prefix] - A flag to designate checking for prefix instead of matching
   */
-  operations.getRowWithValue = function(table, valueName, value, prefix) {
-    const valueColIndex = table[HEADER_ROW].indexOf(valueName);
+  operations.getRowWithValue = function(table, columnName, value, prefix) {
+    const valueColIndex = table[HEADER_ROW].indexOf(columnName);
     const colArray = table.map(row => row[valueColIndex]);
     if (!prefix) return colArray.indexOf(value);
     return colArray.reduce((ret, val, index) => {
