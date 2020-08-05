@@ -106,7 +106,19 @@ client.on('message', async message => {
         commands.queryTimeline(args.slice(1)).then(sendToChannel);
         break;
       default:
-        sendToChannel('Please provide one of the following:');
+        sendToChannel('Please enter one of the following: \`advance\` or \`query\`');
+    }
+  }
+  else if (command === 'downtime') {
+    switch(args[0]) {
+      case 'spend':
+        commands.spendDowntime(args.slice(1)).then(sendToChannel);
+        break;
+      case 'query':
+        commands.queryDowntime(args.slice(1)).then(sendToChannel);
+        break;
+      default:
+        sendToChannel('Please provide one of the following: \`spend\` or \`query\`');
     }
   }
   else {

@@ -314,12 +314,88 @@ module.exports = function() {
       })
   }
 
+  function getStretch(row) {
+    const activity = row[0];
+    for (let i = 1; i < row.length; i++) {
+      if (row[i] !== TIMELINE_ACTIVITY_PLACEHOLDER &&
+          row[i].toUpperCase() !== activity.toUpperCase())
+          return i;
+    }
+    return row.length;
+  }
+
+  function findAllDowntime(table, char) {
+    const charRow = sheetOp.getRowWithValue(table, CHAR_COLUMN, char, true);
+    const allDowntime = {};
+    let timeline = table[charRow];
+
+    timeline.forEach((activity, day) => {
+      if (activity.toUpperCase() === 'DOWNTIME') {
+        allDowntime[day] = getStretch(timeline.slice(day))
+      }
+    });
+    return allDowntime;
+  }
+
   /**
   * Set the downtime activity for a stretch of free downtime.
   */
-  commands.setDowntime = function(args) {
+  commands.spendDowntime = function([char, days, ...reason]) {
+    days = parseInt(days);
+    if (!char) return Promise.resolve('No character prefix was provided.');
+    if (isNaN(days)) return Promise.resolve('An invalid number of days was provided.');
+    if (!reason.length) return Promise.resolve('No reason was provided.');
+    reason = reason.join(' ');
+    return sheetOp.getSheet(TIMELINE_SHEET)
+      .then((table) => {
+        const downtimeMap = findAllDowntime(table, char);
+        if (!Object.values(downtimeMap).length || days > Object.values(downtimeMap).reduce((sum, val) => {return sum + val}))
+          return Promise.reject('Not enough downtime days.');
 
-    //startingDay, days
+        const charRow = sheetOp.getRowWithValue(table, CHAR_COLUMN, char, true);
+        const requests = [];
+        for (let [key, value] of Object.entries(downtimeMap)) {
+          key = parseInt(key);
+          let values = [];
+          requests.push(utils.genUpdateCellsRequest([reason + ' (Downtime)'], TIMELINE_SHEET_ID, charRow, key));
+          if (days <= value) {
+            if (value !== days)
+              requests.push(utils.genUpdateCellsRequest(['Downtime'], TIMELINE_SHEET_ID, charRow, key + days));
+            break;
+          }
+          else days -= value;
+        }
+
+        return requests;
+      })
+      .then(sheetOp.sendRequests)
+      .then((res, err) => {
+        if (err) {
+          console.log(err);
+          return 'Bot error: spending downtime failed.';
+        }
+        return 'Downtime spent successfully.';
+      })
+      .catch((err) => {
+        return err;
+      });
+  }
+
+  commands.queryDowntime = function([char]) {
+    if (!char) return Promise.resolve('No character prefix was provided.');
+    return sheetOp.getSheet(TIMELINE_SHEET)
+      .then((table) => {
+        const downtimeMap = Object.values(findAllDowntime(table, char));
+        let downtime;
+        if (!downtimeMap.length) downtime = 0;
+        else downtime = Object.values(downtimeMap).reduce((sum, val) => {return sum + val});
+        const charRow = sheetOp.getRowWithValue(table, CHAR_COLUMN, char, true);
+        return table[charRow][table[HEADER_ROW].indexOf(CHAR_COLUMN)] + ' has '+ downtime + ' downtime days.';
+      })
+      .catch((err) => {
+        console.log(err);
+        return 'Bot error: querying downtime failed.';
+      });
   }
 
   return commands;
