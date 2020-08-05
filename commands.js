@@ -279,8 +279,8 @@ module.exports = function() {
     /**
     * Get the character's current day. If a fresh character, stop.
     */
-    function getPresentDay(table, charPrefix) {
-      const charRow = sheetOp.getRowWithValue(table, CHAR_COLUMN, charPrefix, true);
+    function getPresentDay(table, char) {
+      const charRow = sheetOp.getRowWithValue(table, CHAR_COLUMN, char, true);
       const debutIdx = table[HEADER_ROW].indexOf(DEBUT_COLUMN);
       const debutDay = parseInt(table[charRow][debutIdx]);
       if (isNaN(debutDay)) return -1;
@@ -297,10 +297,10 @@ module.exports = function() {
   */
   commands.queryTimeline = function(args) {
     const day = parseInt(args[0]);
-    const charPrefix = args[1];
+    const char = args[1];
     return sheetOp.getSheet(TIMELINE_SHEET)
       .then((table) => {
-        const charRow = sheetOp.getRowWithValue(table, CHAR_COLUMN, charPrefix, true);
+        const charRow = sheetOp.getRowWithValue(table, CHAR_COLUMN, char, true);
         if (charRow === -1) return 'Character doesn\'t exist.';
         const timelineStartIdx = table[HEADER_ROW].indexOf(TIMELINE_START_COLUMN);
         const debutIdx = table[HEADER_ROW].indexOf(DEBUT_COLUMN);
