@@ -90,9 +90,6 @@ client.on('message', async message => {
   }
   else if (command === 'char') {
     if (args[0] === 'register') {
-      commands.registerPlayer(message, args).then((output) => {
-        message.channel.send(output);
-      });
       commands.registerCharacter(message, args).then((output) => {
         message.channel.send(output);
       });
@@ -109,9 +106,18 @@ client.on('message', async message => {
     }
   }
   else if (command === 'add') {
-    commands.addValue(args).then((output) => {
-      message.channel.send(output);
-    });
+    if (args[0] == 'trb') {
+      commands.registerPlayer(message, args).then((output) => {
+        commands.addValue(args).then((output) => {
+          message.channel.send(output);
+        });
+      });
+    }
+    else {
+      commands.addValue(args).then((output) => {
+        message.channel.send(output);
+      });
+    }
   }
   else {
     message.channel.send('Command not recognized.');
