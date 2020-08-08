@@ -81,7 +81,16 @@ client.on('message', async message => {
     sendChunkedText(message, help.getHelp(args), true)
   }
   else if (command === 'info') {
-    commands.getCharacterInfo(args).then(sendToChannel);
+    if (args.length == 0) {
+      commands.getPlayerInfo(message, args).then((output) => {
+        message.channel.send(output);
+      });
+    }
+    else {
+      commands.getCharacterInfo(message, args).then((output) => {
+        message.channel.send(output);
+      });
+    }
   }
   else if (command === 'char') {
     if (args[0] === 'register') {
@@ -95,7 +104,18 @@ client.on('message', async message => {
     }
   }
   else if (command === 'add') {
-    commands.addCharacterValue(args).then(sendToChannel);
+    if (args[0] == 'trb') {
+      commands.registerPlayer(message, args).then((output) => {
+        commands.addValue(args).then((output) => {
+          message.channel.send(output);
+        });
+      });
+    }
+    else {
+      commands.addValue(args).then((output) => {
+        message.channel.send(output);
+      });
+    }
   }
   else if (command === 'timeline') {
     switch(args[0]) {
