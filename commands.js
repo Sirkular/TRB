@@ -81,7 +81,13 @@ module.exports = function() {
         }
         // Existing Player
         else {
-          let req = utils.genAppendDimRequest(CHARACTERS_SHEET_ID, true, 1);
+          let req;
+          if (playerRowIndex !== table.length - 1)
+            req = utils.genInsertRowRequest(false, CHARACTERS_SHEET_ID, playerRowIndex, playerRowIndex + 1);
+          else {
+            req = utils.genAppendDimRequest(CHARACTERS_SHEET_ID, true, 1);
+            playerRowIndex = table.length;
+          }
           requests.push(req);
           req = utils.genUpdateCellsRequest([playerId], CHARACTERS_SHEET_ID, playerRowIndex, idRowIdx);
           requests.push(req);
@@ -210,7 +216,9 @@ module.exports = function() {
     const days = parseInt(args[daysIndex]);
     const startingDay = parseInt(args[daysIndex + 1]);
     const reason = args.slice(daysIndex + (isNaN(startingDay) ? 1 : 2)).join(' ');
-    if (!(days && reason && chars.length)) return Promise.resolve('One of days, reason, or prefix was not provided.');
+    if (isNaN(days)) return Promise.resolve('Days not provided or is not a number.');
+    if (!reason) return Promise.resolve('No activity was provided.');
+    if (!chars.length) return Promise.resolve('No character prefix(es) were provided.');
     // Ensure startingDay is after character farthest in the future.
     // If no character has debuted and startingDay is not defined... error.
     return sheetOp.getSheet(TIMELINE_SHEET)
@@ -298,6 +306,8 @@ module.exports = function() {
   commands.queryTimeline = function(args) {
     const day = parseInt(args[0]);
     const char = args[1];
+    if (isNaN(day)) return Promise.resolve('No day was provided.');
+    if (!char) return Promise.resolve('No character specified.');
     return sheetOp.getSheet(TIMELINE_SHEET)
       .then((table) => {
         const charRow = sheetOp.getRowWithValue(table, CHAR_COLUMN, char, true);
