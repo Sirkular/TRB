@@ -12,6 +12,9 @@ module.exports = function() {
   TRB_SPECIAL_COLUMN = 'TRB_SPECIAL';
   TRB_SPENT_COLUMN = 'TRB_SPENT';
   TRB_LOST_COLUMN = 'TRB_LOST;'
+  TIMELINE_START_COLUMN = 'TIMELINE_START';
+  DEBUT_COLUMN = 'DEBUT';
+  TIMELINE_ACTIVITY_PLACEHOLDER = '---';
 
   const MXP_THRESHOLDS = [0];
   for (let i = 1; i <= 20; i++) {
@@ -67,58 +70,74 @@ module.exports = function() {
       let charName = args.slice(1).join(' ');
       let playerId = message.member.user.id;
       let playerName = message.member.user.tag;
-      sheetOp.getSheet(CHARACTERS_SHEET)
-        .then((table) => {
+      Promise.all([sheetOp.getSheet(CHARACTERS_SHEET), sheetOp.getSheet(TIMELINE_SHEET)])
+        .then(([charactersTable, timelineTable]) => {
           let requests = [];
-          let headerTags = table[HEADER_ROW];
-          let idRowIdx = headerTags.indexOf(ID_COLUMN);
-          let charNameRowIdx = headerTags.indexOf(CHAR_COLUMN);
-          let playerRowIndex = sheetOp.getLastRowWithValue(table, ID_COLUMN, playerId, false);
-          // New Player
-          if (playerRowIndex === -1) {
-            let playerArr = [];
-            for (i = 0; i < headerTags.length; i++) {
-              if (headerTags[i] === ID_COLUMN) {
-                playerArr.push(playerId);
-              }
-              else if (headerTags[i] === CHAR_COLUMN) {
-                playerArr.push(charName);
-              }
-              else {
-                playerArr.push(0);
-              }
-            }
-            let req = utils.genAppendDimRequest(CHARACTERS_SHEET_ID, table.length, 1);
-            requests.push(req);
-            req = utils.genUpdateCellsRequest(playerArr, CHARACTERS_SHEET_ID, table.length, idRowIdx);
-            requests.push(req);
+          requests = requests.concat(charactersRegistration(charactersTable));
+          requests = requests.concat(timelineRegistration(timelineTable));
+          return requests;
+        })
+        .then(sheetOp.sendRequests)
+        .then(() => {
+          resolve('Registered ' + charName + ' for ' + message.member.user.toString() + '.');
+        })
+        .catch((err) => {
+          console.log('registerCharacter error: ' + err);
+          resolve('Bot error: registering character failed.')
+        });
+
+
+      function charactersRegistration(table) {
+        let headerTags = table[HEADER_ROW];
+        let idRowIdx = headerTags.indexOf(ID_COLUMN);
+        let charNameRowIdx = headerTags.indexOf(CHAR_COLUMN);
+        let requests = [];
+        let playerRowIndex = sheetOp.getLastRowWithValue(table, ID_COLUMN, playerId, false);
+        // New Player
+        if (playerRowIndex === -1) {
+          let req = utils.genAppendDimRequest(CHARACTERS_SHEET_ID, true, 1);
+          requests.push(req);
+
+          let data = [];
+          for (i = 0; i < headerTags.length; i++) {
+            if (headerTags[i] === ID_COLUMN) data.push(playerId);
+            else if (headerTags[i] === CHAR_COLUMN) data.push(charName);
+            else data.push(0);
           }
-          // Existing Player
+          req = utils.genUpdateCellsRequest(data, CHARACTERS_SHEET_ID, table.length, 0);
+          requests.push(req);
+        }
+        // Existing Player
+        else {
+          let req;
+          if (playerRowIndex !== table.length - 1)
+            req = utils.genInsertRowRequest(false, CHARACTERS_SHEET_ID, playerRowIndex, playerRowIndex + 1);
           else {
-            let playerArr = [];
-            for (i = 0; i < headerTags.length; i++) {
-              if (headerTags[i] === ID_COLUMN) {
-                playerArr.push(playerId);
-              }
-              else if (headerTags[i] === CHAR_COLUMN) {
-                playerArr.push(charName);
-              }
-              else {
-                playerArr.push(0);
-              }
-            }
-            let req = utils.genInsertRowRequest(false, CHARACTERS_SHEET_ID, playerRowIndex + 1, playerRowIndex + 2);
-            requests.push(req);
-            req = utils.genUpdateCellsRequest(playerArr, CHARACTERS_SHEET_ID, playerRowIndex + 1, idRowIdx);
-            requests.push(req);
-          };
-          
-          sheetOp.sendRequests(requests).then(() => {
-            resolve('Registered ' + charName + ' for ' + message.member.user.toString() + '.');
-          }).catch(() => {
-            resolve('Error registering character.');
-          });
-        }).catch((err) => {console.log('registerCharacter error: ' + err)});
+            req = utils.genAppendDimRequest(CHARACTERS_SHEET_ID, true, 1);
+            playerRowIndex = table.length;
+          }
+          requests.push(req);
+
+          let data = [];
+          for (i = 0; i < headerTags.length; i++) {
+            if (headerTags[i] === ID_COLUMN) data.push(playerId);
+            else if (headerTags[i] === CHAR_COLUMN) data.push(charName);
+            else data.push(0);
+          }
+          req = utils.genUpdateCellsRequest(data, CHARACTERS_SHEET_ID, playerRowIndex, 0);
+          requests.push(req);
+        }
+        return requests;
+      }
+
+      function timelineRegistration(table) {
+        let charNameRowIdx = table[HEADER_ROW].indexOf(CHAR_COLUMN);
+        let requests = [];
+        const sheetId = TIMELINE_SHEET_ID;
+        requests.push(utils.genAppendDimRequest(TIMELINE_SHEET_ID, true, 1));
+        requests.push(utils.genUpdateCellsRequest([charName], sheetId, table.length, charNameRowIdx));
+        return requests;
+      }
     });
   }
 
@@ -278,6 +297,209 @@ module.exports = function() {
           resolve('Error adding value to character(s).');
         });
     });
+  }
+
+  /**
+  * If multiple characters are advanced, sync all characters' timeline to
+  * character farthest in the future with the downtime reason, then add the
+  * number of days.
+  */
+  commands.advanceTimeline = function(args) {
+    const daysIndex = args.findIndex(val => !isNaN(parseInt(val)));
+    const chars = args.slice(0, daysIndex);
+    const days = parseInt(args[daysIndex]);
+    const startingDay = parseInt(args[daysIndex + 1]);
+    const reason = args.slice(daysIndex + (isNaN(startingDay) ? 1 : 2)).join(' ');
+    if (isNaN(days)) return Promise.resolve('Days not provided or is not a number.');
+    if (!reason) return Promise.resolve('No activity was provided.');
+    if (!chars.length) return Promise.resolve('No character prefix(es) were provided.');
+    // Ensure startingDay is after character farthest in the future.
+    // If no character has debuted and startingDay is not defined... error.
+    return sheetOp.getSheet(TIMELINE_SHEET)
+      .then((table) => {
+        let charRows = chars.map((char) => {
+          return sheetOp.getRowWithValue(table, CHAR_COLUMN, char, true);
+        });
+        let charDays = chars.map((char) => {
+          return getPresentDay(table, char);
+        });
+        if (!charDays.some(day => day !== -1) && isNaN(startingDay))
+          return 'Every character is debuting but no starting day was provided.';
+        let baseline = -1;
+        charDays.forEach((day) => {
+          baseline = Math.max(baseline, day);
+        });
+
+        const timelineStartIdx = table[HEADER_ROW].indexOf(TIMELINE_START_COLUMN);
+        if (!isNaN(startingDay)) {
+          if (baseline > startingDay + timelineStartIdx)
+            return 'Given starting day was before ' + chars[charDays.indexOf(baseline)] + '\'s present day: day ' + (baseline - timelineStartIdx);
+          baseline = startingDay + timelineStartIdx;
+        }
+
+        let requests = [];
+
+        if (table[HEADER_ROW].length <= baseline + days) {
+          let values = [];
+          for (let i = table[HEADER_ROW].length; i < baseline + days; i++) {
+            values.push('Day ' + (i - timelineStartIdx));
+          }
+          requests.push(utils.genAppendDimRequest(TIMELINE_SHEET_ID, false, baseline + days - table[HEADER_ROW].length));
+          requests.push(utils.genUpdateCellsRequest(values, TIMELINE_SHEET_ID, HEADER_ROW, table[HEADER_ROW].length));
+        }
+
+        charDays.forEach((day, index) => {
+          let values = [];
+          if (day === -1) { // New character, fresh debut.
+            const debutIdx = table[HEADER_ROW].indexOf(DEBUT_COLUMN);
+            requests.push(utils.genUpdateCellsRequest([baseline], TIMELINE_SHEET_ID, charRows[index], debutIdx));
+            day = baseline;
+          }
+          else if (day < baseline) { // Sync character to latest character by filling in with downtime.
+            values = ['Downtime'];
+            for (let i = day + 1; i < baseline; i++) {
+              values.push(TIMELINE_ACTIVITY_PLACEHOLDER);
+            }
+          }
+          values.push(reason);
+          for (let i = baseline + 1; i < baseline + days; i++) {
+            values.push(TIMELINE_ACTIVITY_PLACEHOLDER);
+          }
+          requests.push(utils.genUpdateCellsRequest(values, TIMELINE_SHEET_ID, charRows[index], day));
+        });
+
+        sheetOp.sendRequests(requests);
+      })
+      .then((msg) => {
+        return msg ? msg : ('Timeline advanced for ' + chars.join(', '));
+      })
+      .catch((err) => {
+        console.log(err);
+        return 'Bot error: advancing timeline failed.'
+      });
+
+    /**
+    * Get the character's current day. If a fresh character, stop.
+    */
+    function getPresentDay(table, char) {
+      const charRow = sheetOp.getRowWithValue(table, CHAR_COLUMN, char, true);
+      const debutIdx = table[HEADER_ROW].indexOf(DEBUT_COLUMN);
+      const debutDay = parseInt(table[charRow][debutIdx]);
+      if (isNaN(debutDay)) return -1;
+      let day;
+      for (day = debutDay; day < table[charRow].length; day++) {
+        if (!table[charRow][day]) return day;
+      }
+      return day;
+    }
+  }
+
+  /**
+  * Query what a character is doing on a day.
+  */
+  commands.queryTimeline = function(args) {
+    const day = parseInt(args[0]);
+    const char = args[1];
+    if (isNaN(day)) return Promise.resolve('No day was provided.');
+    if (!char) return Promise.resolve('No character specified.');
+    return sheetOp.getSheet(TIMELINE_SHEET)
+      .then((table) => {
+        const charRow = sheetOp.getRowWithValue(table, CHAR_COLUMN, char, true);
+        if (charRow === -1) return 'Character doesn\'t exist.';
+        const timelineStartIdx = table[HEADER_ROW].indexOf(TIMELINE_START_COLUMN);
+        const debutIdx = table[HEADER_ROW].indexOf(DEBUT_COLUMN);
+        if (day < table[charRow][debutIdx]) return 'Before debut.'
+        if (table[charRow].length <= timelineStartIdx + day || !table[charRow][timelineStartIdx + day]) return 'Future';
+        for (let i = timelineStartIdx + day; i >= timelineStartIdx; i--) {
+          const activity = table[charRow][i];
+          if (activity !== TIMELINE_ACTIVITY_PLACEHOLDER) return activity;
+        }
+        return 'Character has no timeline.';
+      })
+  }
+
+  function getStretch(row) {
+    const activity = row[0];
+    for (let i = 1; i < row.length; i++) {
+      if (row[i] !== TIMELINE_ACTIVITY_PLACEHOLDER &&
+          row[i].toUpperCase() !== activity.toUpperCase())
+          return i;
+    }
+    return row.length;
+  }
+
+  function findAllDowntime(table, char) {
+    const charRow = sheetOp.getRowWithValue(table, CHAR_COLUMN, char, true);
+    const allDowntime = {};
+    let timeline = table[charRow];
+
+    timeline.forEach((activity, day) => {
+      if (activity.toUpperCase() === 'DOWNTIME') {
+        allDowntime[day] = getStretch(timeline.slice(day))
+      }
+    });
+    return allDowntime;
+  }
+
+  /**
+  * Set the downtime activity for a stretch of free downtime.
+  */
+  commands.spendDowntime = function([char, days, ...reason]) {
+    days = parseInt(days);
+    if (!char) return Promise.resolve('No character prefix was provided.');
+    if (isNaN(days)) return Promise.resolve('An invalid number of days was provided.');
+    if (!reason.length) return Promise.resolve('No reason was provided.');
+    reason = reason.join(' ');
+    return sheetOp.getSheet(TIMELINE_SHEET)
+      .then((table) => {
+        const downtimeMap = findAllDowntime(table, char);
+        if (!Object.values(downtimeMap).length || days > Object.values(downtimeMap).reduce((sum, val) => {return sum + val}))
+          return Promise.reject('Not enough downtime days.');
+
+        const charRow = sheetOp.getRowWithValue(table, CHAR_COLUMN, char, true);
+        const requests = [];
+        for (let [key, value] of Object.entries(downtimeMap)) {
+          key = parseInt(key);
+          let values = [];
+          requests.push(utils.genUpdateCellsRequest([reason + ' (Downtime)'], TIMELINE_SHEET_ID, charRow, key));
+          if (days <= value) {
+            if (value !== days)
+              requests.push(utils.genUpdateCellsRequest(['Downtime'], TIMELINE_SHEET_ID, charRow, key + days));
+            break;
+          }
+          else days -= value;
+        }
+
+        return requests;
+      })
+      .then(sheetOp.sendRequests)
+      .then((res, err) => {
+        if (err) {
+          console.log(err);
+          return 'Bot error: spending downtime failed.';
+        }
+        return 'Downtime spent successfully.';
+      })
+      .catch((err) => {
+        return err;
+      });
+  }
+
+  commands.queryDowntime = function([char]) {
+    if (!char) return Promise.resolve('No character prefix was provided.');
+    return sheetOp.getSheet(TIMELINE_SHEET)
+      .then((table) => {
+        const downtimeMap = Object.values(findAllDowntime(table, char));
+        let downtime;
+        if (!downtimeMap.length) downtime = 0;
+        else downtime = Object.values(downtimeMap).reduce((sum, val) => {return sum + val});
+        const charRow = sheetOp.getRowWithValue(table, CHAR_COLUMN, char, true);
+        return table[charRow][table[HEADER_ROW].indexOf(CHAR_COLUMN)] + ' has '+ downtime + ' downtime days.';
+      })
+      .catch((err) => {
+        console.log(err);
+        return 'Bot error: querying downtime failed.';
+      });
   }
 
   return commands;

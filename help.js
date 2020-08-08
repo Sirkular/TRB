@@ -1,38 +1,82 @@
 module.exports = function() {
   const help = {};
   const commands = {
-    "add":  "\`add resource amount character_prefix1 character_prefix2 ...\`\n",
-    "info": "\`info character_prefix1\`\n",
-    "char": "\`char register character_name \/ char delete character_name \/ char list\`\n"
+    "add":  "\`add resource amount char_prefix1 char_prefix2 ...\`",
+    "info": "\`info char_prefix1\`",
+    "char": "\`char register character_name \/ char delete character_name \/ char list\`",
+    "timeline": {
+      "advance": "\`timeline advance char_prefix1 char_prefix2 ... days [startingDay] activity\`",
+      "query": "\`timeline query char_prefix day\`"
+    },
+    "downtime": {
+      "spend": "\`downtime spend char_prefix days activity\`",
+      "query": "\`downtime query char_prefix\`"
+    }
+  };
+  const descriptions = {
+    "info": "Get the MXP of character.",
+    "add": "Add amount of resource to characters." +
+           "character_prefix is any prefix of a character\'s name, spaces not allowed." +
+           "e.g. Irontank has Iron, Iront, Irontank as valid prefixes.",
+    "char": "General character command. Allows register, delete, and list.",
+    "timeline": {
+      "advance": "Finds the character farthest in the future out of all characters " +
+                  "provided and syncs the other characters' timeline to the farthest by " +
+                  "filling in the disparity with downtime.\n" +
+                  "*startingDay* is an optional number that will be the baseline " +
+                  "with which to sync all characters using downtime.",
+      "query": "Outputs what activity the character is partaking in on \`day\`.",
+    },
+    "downtime": {
+      "spend": "Spends \`days\` of a character\'s downtime days doing " +
+      "\`activity\`. Is retroactively applied.",
+      "query": "Outputs how many downtime days a character has.",
+    }
+
   };
 
   help.getHelp = function(args) {
     let command = args[0];
+    let subCommand = args[1];
+    let out = "";
     if (!command) {
-      return getCommands();
+      return displayAll();
+    }
+    else if (!(command in commands)) {
+      out = "Command does not exist.";
+    }
+    else if (!subCommand) {
+      if (typeof commands[command] === 'object') {
+        Object.entries(commands[command]).forEach(([key, value]) => {
+          out += value + "\n" + descriptions[command][key] + "\n";
+        });
+      }
+      else {
+        out = commands[command] + "\n" + descriptions[command];
+      }
+    }
+    else if (typeof commands[command] === 'string' || !(subCommand in commands[command])) {
+      out = "Subcommand does not exist."
     }
     else {
-      let out = commands[command];
-      if (command === "info") {
-        out += "Get the MXP of character.\n";
-      }
-      else if (command === "add") {
-        out += "Add amount of resource to characters.\n";
-        out += "character_prefix is any prefix of a character\'s name, spaces not allowed. e.g. Irontank has Iron, Iront, Irontank as valid prefixes.";
-      }
-      else if (command === "char") {
-        out += "General character command. Allows register, delete, and list.\n"
-      }
-      return out;
+      out = commands[command][subCommand] + descriptions[command][subCommand];
     }
+    return out;
   }
 
-  // TODO: Base commands returned on user role.
-  function getCommands() {
-    let output = "Supported commands:\n";
-    return Object.values(commands).reduce((out, value) => {
-      return out + " - " + value;
-    }, output);
+  function displayAll() {
+    let out = "";
+    Object.entries(commands).forEach(([command, value]) => {
+      if (typeof value === 'object') {
+        Object.entries(value).forEach(([subCommand, val]) => {
+          out += commands[command][subCommand] + "\n" + descriptions[command][subCommand] + "\n";
+        });
+      }
+      else {
+        out += commands[command] + "\n" + descriptions[command] + "\n";
+      }
+    });
+    return out;
   }
 
   return help;

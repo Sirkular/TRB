@@ -69,6 +69,10 @@ client.on('message', async message => {
   }
 
   /////////////////////////////////Commands////////////////////////////////////
+  function sendToChannel(output) {
+    message.channel.send(output);
+  }
+
   if(command === "ping") {
     const m = await message.channel.send("Ping?");
     m.edit(`Pong! Latency is ${m.createdTimestamp - message.createdTimestamp}ms. API Latency is ${Math.round(client.ping)}ms`);
@@ -90,19 +94,13 @@ client.on('message', async message => {
   }
   else if (command === 'char') {
     if (args[0] === 'register') {
-      commands.registerCharacter(message, args).then((output) => {
-        message.channel.send(output);
-      });
+      commands.registerCharacter(message, args).then(sendToChannel);
     }
     else if (args[0] === 'delete') {
-      commands.deleteCharacter(message, args).then((output) => {
-        message.channel.send(output);
-      });
+      commands.deleteCharacter(message, args).then(sendToChannel);
     }
     else if (args[0] === 'list') {
-      commands.listCharacter(message, args).then((output) => {
-        message.channel.send(output);
-      });
+      commands.listCharacter(message, args).then(sendToChannel);
     }
   }
   else if (command === 'add') {
@@ -119,8 +117,32 @@ client.on('message', async message => {
       });
     }
   }
+  else if (command === 'timeline') {
+    switch(args[0]) {
+      case 'advance':
+        commands.advanceTimeline(args.slice(1)).then(sendToChannel);
+        break;
+      case 'query':
+        commands.queryTimeline(args.slice(1)).then(sendToChannel);
+        break;
+      default:
+        sendToChannel('Please enter one of the following: \`advance\` or \`query\`');
+    }
+  }
+  else if (command === 'downtime') {
+    switch(args[0]) {
+      case 'spend':
+        commands.spendDowntime(args.slice(1)).then(sendToChannel);
+        break;
+      case 'query':
+        commands.queryDowntime(args.slice(1)).then(sendToChannel);
+        break;
+      default:
+        sendToChannel('Please provide one of the following: \`spend\` or \`query\`');
+    }
+  }
   else {
-    message.channel.send('Command not recognized.');
+    sendToChannel('Command not recognized.');
   }
 });
 
