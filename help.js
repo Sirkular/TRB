@@ -10,7 +10,7 @@ module.exports = function() {
     },
     "downtime": {
       "spend": "\`downtime spend char_prefix days activity\`",
-      "query": "\`downtime query char_prefix\`"
+      "query": "\`downtime query char_prefix (day)\`"
     }
   };
   const descriptions = {
@@ -25,12 +25,13 @@ module.exports = function() {
                   "filling in the disparity with downtime.\n" +
                   "*startingDay* is an optional number that will be the baseline " +
                   "with which to sync all characters using downtime.",
-      "query": "Outputs what activity the character is partaking in on \`day\`.",
+      "query": "Outputs what activity the character is partaking in on *day*.",
     },
     "downtime": {
       "spend": "Spends \`days\` of a character\'s downtime days doing " +
       "\`activity\`. Is retroactively applied.",
-      "query": "Outputs how many downtime days a character has.",
+      "query": "Outputs how many downtime days a character has. If *day* " +
+      "is specified, outputs how many downtime days a character has up to that day, excluding the day itself.",
     }
 
   };

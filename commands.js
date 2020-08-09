@@ -487,13 +487,24 @@ module.exports = function() {
       });
   }
 
-  commands.queryDowntime = function([char]) {
+  commands.queryDowntime = function([char, day]) {
     if (!char) return Promise.resolve('No character prefix was provided.');
+    day = parseInt(day);
     return sheetOp.getSheet(TIMELINE_SHEET)
       .then((table) => {
-        const downtimeMap = Object.values(findAllDowntime(table, char));
+        const downtimeObj = findAllDowntime(table, char);
+        const downtimeMap = Object.values(downtimeObj);
         let downtime;
         if (!downtimeMap.length) downtime = 0;
+        else if (!isNaN(day)) {
+          downtime = 0;
+          const timelineStartIdx = table[HEADER_ROW].indexOf(TIMELINE_START_COLUMN);
+          Object.entries(downtimeObj).forEach(([index, stretch]) => {
+            const actualDay = index - timelineStartIdx;
+            if (actualDay + stretch <= day) downtime += stretch;
+            else downtime += Math.max(day - actualDay, 0);
+          });
+        }
         else downtime = Object.values(downtimeMap).reduce((sum, val) => {return sum + val});
         const charRow = sheetOp.getRowWithValue(table, CHAR_COLUMN, char, true);
         return table[charRow][table[HEADER_ROW].indexOf(CHAR_COLUMN)] + ' has '+ downtime + ' downtime days.';
