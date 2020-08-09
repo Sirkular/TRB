@@ -377,21 +377,21 @@ module.exports = function() {
         console.log(err);
         return 'Bot error: advancing timeline failed.'
       });
+  }
 
-    /**
-    * Get the character's current day. If a fresh character, stop.
-    */
-    function getPresentDay(table, char) {
-      const charRow = sheetOp.getRowWithValue(table, CHAR_COLUMN, char, true);
-      const debutIdx = table[HEADER_ROW].indexOf(DEBUT_COLUMN);
-      const debutDay = parseInt(table[charRow][debutIdx]);
-      if (isNaN(debutDay)) return -1;
-      let day;
-      for (day = debutDay; day < table[charRow].length; day++) {
-        if (!table[charRow][day]) return day;
-      }
-      return day;
+  /**
+  * Get the character's current day. If a fresh character, stop.
+  */
+  function getPresentDay(table, char) {
+    const charRow = sheetOp.getRowWithValue(table, CHAR_COLUMN, char, true);
+    const debutIdx = table[HEADER_ROW].indexOf(DEBUT_COLUMN);
+    const debutDay = parseInt(table[charRow][debutIdx]);
+    if (isNaN(debutDay)) return -1;
+    let day;
+    for (day = debutDay; day < table[charRow].length; day++) {
+      if (!table[charRow][day]) return day;
     }
+    return day;
   }
 
   /**
@@ -410,12 +410,7 @@ module.exports = function() {
         const debutIdx = table[HEADER_ROW].indexOf(DEBUT_COLUMN);
         if (isNaN(parseInt(table[charRow][debutIdx]))) return 'Character has not debuted.'
         if (day < parseInt(table[charRow][debutIdx])) return 'Before debut.'
-        if (typeof day === 'undefined') {
-          let present;
-          for (present = charRow.length - 1; present >= table[charRow][debutIdx]; present--) {
-            if (table[charRow][present] !== '') return 'Present day: ' + present;
-          }
-        }
+        if (isNaN(day)) return 'Present day: ' + (getPresentDay(table, char) - timelineStartIdx);
         if (table[charRow].length <= timelineStartIdx + day || !table[charRow][timelineStartIdx + day]) return 'Future';
         for (let i = timelineStartIdx + day; i >= timelineStartIdx; i--) {
           const activity = table[charRow][i];
