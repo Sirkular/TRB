@@ -339,7 +339,7 @@ module.exports = function() {
 
         let requests = [];
 
-        if (table[HEADER_ROW].length <= baseline + days) {
+        if (table[HEADER_ROW].length < baseline + days) {
           let values = [];
           for (let i = table[HEADER_ROW].length; i < baseline + days; i++) {
             values.push('Day ' + (i - timelineStartIdx));
