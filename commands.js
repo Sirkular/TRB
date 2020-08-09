@@ -410,7 +410,7 @@ module.exports = function() {
         const debutIdx = table[HEADER_ROW].indexOf(DEBUT_COLUMN);
         if (isNaN(parseInt(table[charRow][debutIdx]))) return 'Character has not debuted.'
         if (day < parseInt(table[charRow][debutIdx])) return 'Before debut.'
-        if (typeof day === undefined) {
+        if (typeof day === 'undefined') {
           let present;
           for (present = charRow.length - 1; present >= table[charRow][debutIdx]; present--) {
             if (table[charRow][present] !== '') return 'Present day: ' + present;
