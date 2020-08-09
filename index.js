@@ -81,7 +81,7 @@ client.on('message', async message => {
     sendChunkedText(message, help.getHelp(args), true)
   }
   else if (command === 'info') {
-    if (args.length == 0) {
+    if (args.length == 0 || message.mentions.users.first()) {
       commands.getPlayerInfo(message, args).then((output) => {
         message.channel.send(output);
       });

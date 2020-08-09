@@ -47,17 +47,22 @@ module.exports = function() {
   };
 
   commands.getPlayerInfo = function(message, args) {
+    let playerId = message.member.user.id;
+    if (message.mentions.users.first()) playerId = message.mentions.users.first().id;
     return new Promise((resolve, reject) => {
-      let playerId = message.member.user.id;
       sheetOp.getSheet(PLAYERS_SHEET)
-        .then((player_table) => {
-          let lifetimeTrb = parseInt(sheetOp.getValue(player_table, ID_COLUMN, playerId, 'TRB_DM'))
-            + parseInt(sheetOp.getValue(player_table, ID_COLUMN, playerId, 'TRB_PLAYER'))
-            + parseInt(sheetOp.getValue(player_table, ID_COLUMN, playerId, 'TRB_SPECIAL'));
+        .then((playerTable) => {
+          let lifetimeTrb = parseInt(sheetOp.getValue(playerTable, ID_COLUMN, playerId, 'TRB_DM'))
+            + parseInt(sheetOp.getValue(playerTable, ID_COLUMN, playerId, 'TRB_PLAYER'))
+            + parseInt(sheetOp.getValue(playerTable, ID_COLUMN, playerId, 'TRB_SPECIAL'));
           let availableTrb = lifetimeTrb
-            - parseInt(sheetOp.getValue(player_table, ID_COLUMN, playerId, 'TRB_SPENT'))
-            - parseInt(sheetOp.getValue(player_table, ID_COLUMN, playerId, 'TRB_LOST'));
+            - parseInt(sheetOp.getValue(playerTable, ID_COLUMN, playerId, 'TRB_SPENT'))
+            - parseInt(sheetOp.getValue(playerTable, ID_COLUMN, playerId, 'TRB_LOST'));
 
+          if (isNaN(lifetimeTrb)) {
+            lifetimeTrb = 0;
+            availableTrb = 0;
+          }
           let out = 'Available TRB: ' + availableTrb + '\n';
           out += 'Lifetime TRB: ' + lifetimeTrb + '\n';
           resolve(out);
