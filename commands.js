@@ -398,9 +398,9 @@ module.exports = function() {
   * Query what a character is doing on a day.
   */
   commands.queryTimeline = function(args) {
-    const day = parseInt(args[0]);
-    const char = args[1];
-    if (isNaN(day)) return Promise.resolve('No day was provided.');
+    const day = parseInt(args[1]);
+    const char = args[0];
+    if (day && isNaN(day)) return Promise.resolve('Day must be a number.');
     if (!char) return Promise.resolve('No character specified.');
     return sheetOp.getSheet(TIMELINE_SHEET)
       .then((table) => {
@@ -408,7 +408,14 @@ module.exports = function() {
         if (charRow === -1) return 'Character doesn\'t exist.';
         const timelineStartIdx = table[HEADER_ROW].indexOf(TIMELINE_START_COLUMN);
         const debutIdx = table[HEADER_ROW].indexOf(DEBUT_COLUMN);
-        if (day < table[charRow][debutIdx]) return 'Before debut.'
+        if (isNaN(parseInt(table[charRow][debutIdx]))) return 'Character has not debuted.'
+        if (day < parseInt(table[charRow][debutIdx])) return 'Before debut.'
+        if (typeof day === undefined) {
+          let present;
+          for (present = charRow.length - 1; present >= table[charRow][debutIdx]; present--) {
+            if (table[charRow][present] !== '') return 'Present day: ' + present;
+          }
+        }
         if (table[charRow].length <= timelineStartIdx + day || !table[charRow][timelineStartIdx + day]) return 'Future';
         for (let i = timelineStartIdx + day; i >= timelineStartIdx; i--) {
           const activity = table[charRow][i];
