@@ -1,83 +1,111 @@
 module.exports = function() {
   const help = {};
-  const commands = {
-    "add":  "\`add resource amount char_prefix1 char_prefix2 ...\`",
-    "info": "\`info char_prefix1\`",
-    "char": "\`char register character_name \/ char delete character_name \/ char list\`",
-    "timeline": {
-      "advance": "\`timeline advance char_prefix1 char_prefix2 ... days [startingDay] activity\`",
-      "query": "\`timeline query char_prefix day\`"
+
+  const utils = require('./utils.js')();
+
+  const commands = ["info", "char", "downtime", "add", "timeline"];
+  const help_commands = {
+    "General": {
+      "info": {
+        "main": "Displays information for player or character.\n\`info <OPTIONAL CHARACTER NAME>\`",
+        "sub": {
+          "general": "Gives general player information.\n\`info\`",
+          "character": "Gives general character information\n\`info <CHARACTER NAME>\`"
+        },
+      },
+      "char": {
+        "main": "General command for character functions (registeration, delete, look up).\n\`char <register/list>\`",
+        "sub": {
+          "register": "Registers character into tracker.\n\`char register <FULL CHARACTER NAME>\`",
+          "delete": "Deletes registered character from tracker permanently.\n\`char delete <CHARACTER NAME> \`\n**Note:** Character name with no spaces. Just first prefix OK.'",
+          "list": "List registered characters in tracker for player.\n\`char list\`",
+        },
+      },
+      "downtime": {
+        "main": "Allows players to use and look at their downtime.\n\`downtime <spend/query>\`",
+        "sub": {
+          "spend": "Spends \`days\` of a character\'s downtime days doing \`activity\`. Is retroactively applied.",
+          "query": "Outputs how many downtime days a character has.",
+        },
+      },
     },
-    "downtime": {
-      "spend": "\`downtime spend char_prefix days activity\`",
-      "query": "\`downtime query char_prefix\`"
-    }
-  };
-  const descriptions = {
-    "info": "Get the MXP of character.",
-    "add": "Add amount of resource to characters." +
-           "character_prefix is any prefix of a character\'s name, spaces not allowed." +
-           "e.g. Irontank has Iron, Iront, Irontank as valid prefixes.",
-    "char": "General character command. Allows register, delete, and list.",
-    "timeline": {
-      "advance": "Finds the character farthest in the future out of all characters " +
+    "DM Specific": {
+      "add": {
+        "main": "Adds a specific amount for a resource for a list of character/player.\n\`add <resource> <amount> <LIST OF RECEIVERS>\`",
+        "sub": {
+          "mxp": "Adds MXP for specified characters.\n\`add mxp <amount> <CHARACTER NAME 1> <CHARACTER NAME 2> ... \`\n**Note:** Character name with no spaces. Just first prefix OK.",
+          "trb": "Adds specified TRB for specific players.\n\'add trb <dm/player/special> <amount> <PLAYER TAG 1> <PLAYER TAG 2> ... \`\n**Note:** Must tag player not just their names."
+        },
+      },
+      "timeline": {
+        "main": "Command for adjusting character timelines.\n\`timeline <advance/query>\`",
+        "sub": {
+          "advance": "Finds the character farthest in the future out of all characters " +
                   "provided and syncs the other characters' timeline to the farthest by " +
                   "filling in the disparity with downtime.\n" +
                   "*startingDay* is an optional number that will be the baseline " +
                   "with which to sync all characters using downtime.",
-      "query": "Outputs what activity the character is partaking in on \`day\`.",
+          "query": "Outputs what activity the character is partaking in on \`day\`.",
+        },
+      },
     },
-    "downtime": {
-      "spend": "Spends \`days\` of a character\'s downtime days doing " +
-      "\`activity\`. Is retroactively applied.",
-      "query": "Outputs how many downtime days a character has.",
-    }
-
   };
 
   help.getHelp = function(args) {
-    let command = args[0];
-    let subCommand = args[1];
-    let out = "";
-    if (!command) {
+    let command_arg = args[0];
+
+    if (!command_arg) {
       return displayAll();
     }
-    else if (!(command in commands)) {
+    else if (!(commands.includes(command_arg))) {
       out = "Command does not exist.";
     }
-    else if (!subCommand) {
-      if (typeof commands[command] === 'object') {
-        Object.entries(commands[command]).forEach(([key, value]) => {
-          out += value + "\n" + descriptions[command][key] + "\n";
-        });
-      }
-      else {
-        out = commands[command] + "\n" + descriptions[command];
-      }
-    }
-    else if (typeof commands[command] === 'string' || !(subCommand in commands[command])) {
-      out = "Subcommand does not exist."
-    }
     else {
-      out = commands[command][subCommand] + descriptions[command][subCommand];
-    }
-    return out;
+      for (var category in help_commands) {
+        if (command_arg in help_commands[category]) {
+          for (command in help_commands[category]) {
+            if (command == command_arg) {
+              let embed = utils.constructEmbed(command_arg.charAt(0).toUpperCase() + command_arg.slice(1) + " Help", help_commands[category][command]["main"]);
+              
+              let fields = [];
+              for (var sub_command in help_commands[category][command]["sub"]) {
+                fields.push({
+                  name: sub_command.toUpperCase(),
+                  value: help_commands[category][command]["sub"][sub_command]
+                });
+              };
+
+              embed.addFields(fields);
+
+              return {embed};
+            };
+          };
+        };
+      };
+    };
   }
 
   function displayAll() {
-    let out = "";
-    Object.entries(commands).forEach(([command, value]) => {
-      if (typeof value === 'object') {
-        Object.entries(value).forEach(([subCommand, val]) => {
-          out += commands[command][subCommand] + "\n" + descriptions[command][subCommand] + "\n";
-        });
-      }
-      else {
-        out += commands[command] + "\n" + descriptions[command] + "\n";
-      }
-    });
-    return out;
+    let embed = utils.constructEmbed("The Realm Beyond Help", "Thank you for using the TRB Bot! If you need help, please ping a DM or Moderator!");
+
+    let fields = [];
+    for (var category in help_commands) {
+      let desc = ""
+      for (var command in help_commands[category]) {
+        desc += "**" + command + ":** " + help_commands[category][command]['main'] + "\n";
+      };
+
+      fields.push({
+        name: category,
+        value: desc
+      });
+    };
+
+    embed.addFields(fields);
+
+    return {embed};
   }
+
 
   return help;
 }

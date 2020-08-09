@@ -1,6 +1,8 @@
 module.exports = function() {
   let utils = {};
 
+  const Discord = require('discord.js');
+
   utils.genBatchUpdateBody = function(auth, requests) {
     return {
       spreadsheetId: SPREADSHEET_ID,
@@ -106,6 +108,29 @@ module.exports = function() {
         length: num
       }
     }
+  }
+
+  // Constructs new Embeded projects with specified parameters.
+  utils.constructEmbed = function(title, desc, color) {
+    if (!title) {
+      title = 'Default Title';
+    }
+
+    if (!desc) {
+      desc = 'Default Description';
+    }
+
+    if (!color) {
+      color = '#0099ff';
+    }
+
+    const embed = new Discord.MessageEmbed()
+      .setTitle(title)
+      .setColor(color)
+      .setDescription(desc)
+    ;
+
+    return embed;
   }
 
   return utils;
