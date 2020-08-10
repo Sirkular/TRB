@@ -68,6 +68,7 @@ module.exports = function() {
               let embed = utils.constructEmbed(command_arg.charAt(0).toUpperCase() + command_arg.slice(1) + " Help", help_commands[category][command]["main"]);
               
               let fields = [];
+              let desc = "";
               for (var sub_command in help_commands[category][command]["sub"]) {
                 fields.push({
                   name: sub_command.toUpperCase(),
@@ -92,7 +93,10 @@ module.exports = function() {
     for (var category in help_commands) {
       let desc = ""
       for (var command in help_commands[category]) {
-        desc += "**" + command + ":** " + help_commands[category][command]['main'] + "\n";
+        desc += "**__" + command + ":__**\n";
+        for (var sub_command in help_commands[category][command]["sub"]) {
+          desc += "**" + sub_command + ":**" + help_commands[category][command]["sub"][sub_command] + "\n\n";
+        };
       };
 
       fields.push({
