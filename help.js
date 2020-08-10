@@ -21,20 +21,13 @@ module.exports = function() {
           "list": "List registered characters in tracker for player.\n\`char list\`",
         },
       },
-      "downtime": {
-        "main": "Allows players to use and look at their downtime.\n\`downtime <spend/query>\`",
-        "sub": {
-          "spend": "Spends \`days\` of a character\'s downtime days doing \`activity\`. Is retroactively applied.",
-          "query": "Outputs how many downtime days a character has.",
-        },
-      },
     },
     "DM Specific": {
       "add": {
         "main": "Adds a specific amount for a resource for a list of character/player.\n\`add <resource> <amount> <LIST OF RECEIVERS>\`",
         "sub": {
           "mxp": "Adds MXP for specified characters.\n\`add mxp <amount> <CHARACTER NAME 1> <CHARACTER NAME 2> ... \`\n**Note:** Character name with no spaces. Just first prefix OK.",
-          "trb": "Adds specified TRB for specific players.\n\'add trb <dm/player/special> <amount> <PLAYER TAG 1> <PLAYER TAG 2> ... \`\n**Note:** Must tag player not just their names."
+          "trb": "Adds specified TRB for specific players.\n\`add trb <dm/player/special> <amount> <PLAYER TAG 1> <PLAYER TAG 2> ... \`\n**Note:** Must tag player not just their names."
         },
       },
       "timeline": {
@@ -46,6 +39,13 @@ module.exports = function() {
                   "*startingDay* is an optional number that will be the baseline " +
                   "with which to sync all characters using downtime.",
           "query": "Outputs what activity the character is partaking in on \`day\`.",
+        },
+      },
+      "downtime": {
+        "main": "Allows players to use and look at their downtime.\n\`downtime <spend/query>\`",
+        "sub": {
+          "spend": "Spends \`days\` of a character\'s downtime days doing \`activity\`. Is retroactively applied.",
+          "query": "Outputs how many downtime days a character has.",
         },
       },
     },
