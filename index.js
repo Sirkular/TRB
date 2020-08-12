@@ -104,47 +104,69 @@ client.on('message', async message => {
     }
   }
   else if (command === 'add') {
-    if (args[0] == 'trb') {
-      commands.registerPlayer(message, args).then((output) => {
+    if (authorized(message, [roles.GM, roles.TRIAL_GM])) {
+      if (args[0] == 'trb') {
+        commands.registerPlayer(message, args).then((output) => {
+          commands.addValue(args).then((output) => {
+            message.channel.send(output);
+          });
+        });
+      }
+      else {
         commands.addValue(args).then((output) => {
           message.channel.send(output);
         });
-      });
+      }
     }
-    else {
-      commands.addValue(args).then((output) => {
-        message.channel.send(output);
-      });
-    }
+    else
+      message.channel.send('Not authorized.');
   }
   else if (command === 'timeline') {
-    switch(args[0]) {
-      case 'advance':
+    if (args[0] === 'advance') {
+      if (authorized(message, [roles.GM, roles.TRIAL_GM]))
         commands.advanceTimeline(args.slice(1)).then(sendToChannel);
-        break;
-      case 'query':
-        commands.queryTimeline(args.slice(1)).then(sendToChannel);
-        break;
-      default:
-        sendToChannel('Please enter one of the following: \`advance\` or \`query\`');
+      else
+        message.channel.send('Not authorized.');
+    }
+    else if (args[0] === 'query') {
+      commands.queryTimeline(args.slice(1)).then(sendToChannel);
+    }
+    else {
+      sendToChannel('Please enter one of the following: \`advance\` or \`query\`');
     }
   }
   else if (command === 'downtime') {
-    switch(args[0]) {
-      case 'spend':
+    if (args[0] === 'spend') {
+      if (authorized(message, [roles.GM, roles.TRIAL_GM]))
         commands.spendDowntime(args.slice(1)).then(sendToChannel);
-        break;
-      case 'query':
-        commands.queryDowntime(args.slice(1)).then(sendToChannel);
-        break;
-      default:
-        sendToChannel('Please provide one of the following: \`spend\` or \`query\`');
+      else
+        message.channel.send('Not authorized.');
+    }
+    else if (args[0] === 'query') {
+      commands.queryDowntime(args.slice(1)).then(sendToChannel);
+    }
+    else {
+      sendToChannel('Please provide one of the following: \`spend\` or \`query\`');
     }
   }
   else {
     sendToChannel('Command not recognized.');
   }
 });
+
+const roles = {
+  GM: 'GM',
+  TRIAL_GM: 'Trial GM',
+}
+
+/**
+* @param message - A Discord.js message object.
+* @param authorizedRoles - An array of enums from roles.
+*/
+function authorized(message, authorizedRoles) {
+  const authorRoles = message.member.roles.cache;
+  return !!authorRoles.find(role => authorizedRoles.includes(role.name));
+}
 
 function sendChunkedText(message, text, channel) {
   const CHUNK_SIZE = 1900;
