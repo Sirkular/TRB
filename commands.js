@@ -254,12 +254,14 @@ module.exports = function() {
   commands.addValue = function(args) {
     return new Promise((resolve, reject) => {
       let valueName = args[0].toUpperCase();
+      if (!(valueName === 'MXP' || valueName === 'TRB')) resolve('Invalid resource.');
       let amount = 0;
       let characters = [];
       if (!isNaN(args[1])) {
         amount = parseInt(args[1]);
         characters = args.slice(2);
       } else {
+        if (!args[1]) resolve('TRB type not provided.');
         valueName = valueName + "_" + args[1].toUpperCase();
         amount = parseInt(args[2]);
         args.slice(3).forEach((mention) => {
@@ -284,11 +286,11 @@ module.exports = function() {
 
       sheetOp.getSheet(sheetName)
         .then((table) => {
+          const valueCol = table[HEADER_ROW].indexOf(valueName);
           let requests = [];
           characters.forEach((character) => {
             let charRow = sheetOp.getRowWithValue(table, columnId, character, true);
             if (charRow === -1) resolve('One or more of the characters do not exist. No values were added.');
-            let valueCol = table[HEADER_ROW].indexOf(valueName);
             let curValue = table[charRow][valueCol] ? parseInt(table[charRow][valueCol]) : 0;
             let newValue = curValue + amount;
             let req = utils.genUpdateCellsRequest([newValue], sheetId, charRow, valueCol);
