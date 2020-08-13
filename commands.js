@@ -33,7 +33,7 @@ module.exports = function() {
               !sheetOp.authorizedCharacter(table, message, charName))
             resolve('Not authorized to get the data of this character.');
           let mxp = parseInt(sheetOp.getValue(table, CHAR_COLUMN, charName, 'MXP', true));
-          if (mxp === null) resolve('No character by that name exists.');
+          if (isNaN(mxp)) resolve('No character by that name exists.');
           let level = MXP_THRESHOLDS.indexOf(
             MXP_THRESHOLDS.find((th) => {
               return mxp <= th;
