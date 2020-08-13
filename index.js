@@ -130,28 +130,27 @@ client.on('message', async message => {
   }
   else if (command === 'add') {
     if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM])) {
-      if (args[0] == 'trb') {
+      if (!args[0]) {
+        sendToChannel('No resource entered.');
+      }
+      else if (args[0] === 'trb') {
         commands.registerPlayer(message, args).then((output) => {
-          commands.addValue(args).then((output) => {
-            message.channel.send(output);
-          });
+          commands.addValue(args).then(sendToChannel);
         });
       }
       else {
-        commands.addValue(args).then((output) => {
-          message.channel.send(output);
-        });
+        commands.addValue(args).then(sendToChannel);
       }
     }
     else
-      message.channel.send('Not authorized.');
+      sendToChannel('Not authorized.');
   }
   else if (command === 'timeline') {
     if (args[0] === 'advance') {
       if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]))
         commands.advanceTimeline(args.slice(1)).then(sendToChannel);
       else
-        message.channel.send('Not authorized.');
+        sendToChannel('Not authorized.');
     }
     else if (args[0] === 'query') {
       commands.queryTimeline(args.slice(1)).then(sendToChannel);
@@ -165,7 +164,7 @@ client.on('message', async message => {
       if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]))
         commands.spendDowntime(args.slice(1)).then(sendToChannel);
       else
-        message.channel.send('Not authorized.');
+        sendToChannel('Not authorized.');
     }
     else if (args[0] === 'query') {
       commands.queryDowntime(args.slice(1)).then(sendToChannel);
