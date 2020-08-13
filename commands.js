@@ -26,10 +26,12 @@ module.exports = function() {
   commands.getCharacterInfo = function(message, args) {
     return new Promise((resolve, reject) => {
       let charName = args[0];
-      let playerId = message.member.user.id;
       if (!charName) resolve('No character name was given.')
       sheetOp.getSheet(CHARACTERS_SHEET)
         .then((table) => {
+          if (!globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]) &&
+              !sheetOp.authorizedCharacter(table, message, charName))
+            resolve('Not authorized to get the data of this character.');
           let mxp = parseInt(sheetOp.getValue(table, CHAR_COLUMN, charName, 'MXP', true));
           if (mxp === null) resolve('No character by that name exists.');
           let level = MXP_THRESHOLDS.indexOf(

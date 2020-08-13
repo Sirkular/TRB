@@ -9,6 +9,22 @@ TIMELINE_SHEET = 'Timeline';
 
 if (!DEV_MODE) require('dotenv').config();
 
+globe = {};
+
+globe.roles = {
+  GM: 'GM',
+  TRIAL_GM: 'Trial GM',
+};
+
+/**
+* @param message - A Discord.js message object.
+* @param authorizedRoles - An array of enums from roles.
+*/
+globe.authorized = function(message, authorizedRoles) {
+  const authorRoles = message.member.roles.cache;
+  return !!authorRoles.find(role => authorizedRoles.includes(role.name));
+};
+
 ///////////////////////////////Discord Setup///////////////////////////////////
 
 const Discord = require('discord.js');
@@ -81,15 +97,19 @@ client.on('message', async message => {
     sendChunkedText(message, help.getHelp(args), true)
   }
   else if (command === 'info') {
-    if (args.length == 0 || message.mentions.users.first()) {
-      commands.getPlayerInfo(message, args).then((output) => {
-        message.channel.send(output);
-      });
+    if (args.length == 0) {
+      commands.getPlayerInfo(message, args).then(sendToChannel);
+    }
+    else if (message.mentions.users.first()) {
+      if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM])) {
+        commands.getPlayerInfo(message, args).then(sendToChannel);
+      }
+      else {
+        sendToChannel('Not authorized.');
+      }
     }
     else {
-      commands.getCharacterInfo(message, args).then((output) => {
-        message.channel.send(output);
-      });
+      commands.getCharacterInfo(message, args).then(sendToChannel);
     }
   }
   else if (command === 'char') {
@@ -97,14 +117,19 @@ client.on('message', async message => {
       commands.registerCharacter(message, args).then(sendToChannel);
     }
     else if (args[0] === 'delete') {
-      commands.deleteCharacter(message, args).then(sendToChannel);
+      if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM])) {
+        commands.deleteCharacter(message, args).then(sendToChannel);
+      }
+      else {
+        sendToChannel('Not authorized.');
+      }
     }
     else if (args[0] === 'list') {
       commands.listCharacter(message, args).then(sendToChannel);
     }
   }
   else if (command === 'add') {
-    if (authorized(message, [roles.GM, roles.TRIAL_GM])) {
+    if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM])) {
       if (args[0] == 'trb') {
         commands.registerPlayer(message, args).then((output) => {
           commands.addValue(args).then((output) => {
@@ -123,7 +148,7 @@ client.on('message', async message => {
   }
   else if (command === 'timeline') {
     if (args[0] === 'advance') {
-      if (authorized(message, [roles.GM, roles.TRIAL_GM]))
+      if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]))
         commands.advanceTimeline(args.slice(1)).then(sendToChannel);
       else
         message.channel.send('Not authorized.');
@@ -137,7 +162,7 @@ client.on('message', async message => {
   }
   else if (command === 'downtime') {
     if (args[0] === 'spend') {
-      if (authorized(message, [roles.GM, roles.TRIAL_GM]))
+      if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]))
         commands.spendDowntime(args.slice(1)).then(sendToChannel);
       else
         message.channel.send('Not authorized.');
@@ -153,20 +178,6 @@ client.on('message', async message => {
     sendToChannel('Command not recognized.');
   }
 });
-
-const roles = {
-  GM: 'GM',
-  TRIAL_GM: 'Trial GM',
-}
-
-/**
-* @param message - A Discord.js message object.
-* @param authorizedRoles - An array of enums from roles.
-*/
-function authorized(message, authorizedRoles) {
-  const authorRoles = message.member.roles.cache;
-  return !!authorRoles.find(role => authorizedRoles.includes(role.name));
-}
 
 function sendChunkedText(message, text, channel) {
   const CHUNK_SIZE = 1900;
