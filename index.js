@@ -78,7 +78,7 @@ client.on('message', async message => {
     m.edit(`Pong! Latency is ${m.createdTimestamp - message.createdTimestamp}ms. API Latency is ${Math.round(client.ping)}ms`);
   }
   else if (command === 'help') {
-    sendChunkedText(message, help.getHelp(args), true)
+    message.channel.send(help.getHelp(args));
   }
   else if (command === 'info') {
     if (args.length == 0 || message.mentions.users.first()) {
