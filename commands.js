@@ -47,17 +47,22 @@ module.exports = function() {
   };
 
   commands.getPlayerInfo = function(message, args) {
+    let playerId = message.member.user.id;
+    if (message.mentions.users.first()) playerId = message.mentions.users.first().id;
     return new Promise((resolve, reject) => {
-      let playerId = message.member.user.id;
       sheetOp.getSheet(PLAYERS_SHEET)
-        .then((player_table) => {
-          let lifetimeTrb = parseInt(sheetOp.getValue(player_table, ID_COLUMN, playerId, 'TRB_DM'))
-            + parseInt(sheetOp.getValue(player_table, ID_COLUMN, playerId, 'TRB_PLAYER'))
-            + parseInt(sheetOp.getValue(player_table, ID_COLUMN, playerId, 'TRB_SPECIAL'));
+        .then((playerTable) => {
+          let lifetimeTrb = parseInt(sheetOp.getValue(playerTable, ID_COLUMN, playerId, 'TRB_DM'))
+            + parseInt(sheetOp.getValue(playerTable, ID_COLUMN, playerId, 'TRB_PLAYER'))
+            + parseInt(sheetOp.getValue(playerTable, ID_COLUMN, playerId, 'TRB_SPECIAL'));
           let availableTrb = lifetimeTrb
-            - parseInt(sheetOp.getValue(player_table, ID_COLUMN, playerId, 'TRB_SPENT'))
-            - parseInt(sheetOp.getValue(player_table, ID_COLUMN, playerId, 'TRB_LOST'));
+            - parseInt(sheetOp.getValue(playerTable, ID_COLUMN, playerId, 'TRB_SPENT'))
+            - parseInt(sheetOp.getValue(playerTable, ID_COLUMN, playerId, 'TRB_LOST'));
 
+          if (isNaN(lifetimeTrb)) {
+            lifetimeTrb = 0;
+            availableTrb = 0;
+          }
           let out = 'Available TRB: ' + availableTrb + '\n';
           out += 'Lifetime TRB: ' + lifetimeTrb + '\n';
           resolve(out);
@@ -339,7 +344,7 @@ module.exports = function() {
 
         let requests = [];
 
-        if (table[HEADER_ROW].length <= baseline + days) {
+        if (table[HEADER_ROW].length < baseline + days) {
           let values = [];
           for (let i = table[HEADER_ROW].length; i < baseline + days; i++) {
             values.push('Day ' + (i - timelineStartIdx));
@@ -377,30 +382,30 @@ module.exports = function() {
         console.log(err);
         return 'Bot error: advancing timeline failed.'
       });
+  }
 
-    /**
-    * Get the character's current day. If a fresh character, stop.
-    */
-    function getPresentDay(table, char) {
-      const charRow = sheetOp.getRowWithValue(table, CHAR_COLUMN, char, true);
-      const debutIdx = table[HEADER_ROW].indexOf(DEBUT_COLUMN);
-      const debutDay = parseInt(table[charRow][debutIdx]);
-      if (isNaN(debutDay)) return -1;
-      let day;
-      for (day = debutDay; day < table[charRow].length; day++) {
-        if (!table[charRow][day]) return day;
-      }
-      return day;
+  /**
+  * Get the character's current day. If a fresh character, stop.
+  */
+  function getPresentDay(table, char) {
+    const charRow = sheetOp.getRowWithValue(table, CHAR_COLUMN, char, true);
+    const debutIdx = table[HEADER_ROW].indexOf(DEBUT_COLUMN);
+    const debutDay = parseInt(table[charRow][debutIdx]);
+    if (isNaN(debutDay)) return -1;
+    let day;
+    for (day = debutDay; day < table[charRow].length; day++) {
+      if (!table[charRow][day]) return day;
     }
+    return day;
   }
 
   /**
   * Query what a character is doing on a day.
   */
   commands.queryTimeline = function(args) {
-    const day = parseInt(args[0]);
-    const char = args[1];
-    if (isNaN(day)) return Promise.resolve('No day was provided.');
+    const day = parseInt(args[1]);
+    const char = args[0];
+    if (day && isNaN(day)) return Promise.resolve('Day must be a number.');
     if (!char) return Promise.resolve('No character specified.');
     return sheetOp.getSheet(TIMELINE_SHEET)
       .then((table) => {
@@ -408,7 +413,9 @@ module.exports = function() {
         if (charRow === -1) return 'Character doesn\'t exist.';
         const timelineStartIdx = table[HEADER_ROW].indexOf(TIMELINE_START_COLUMN);
         const debutIdx = table[HEADER_ROW].indexOf(DEBUT_COLUMN);
-        if (day < table[charRow][debutIdx]) return 'Before debut.'
+        if (isNaN(parseInt(table[charRow][debutIdx]))) return 'Character has not debuted.'
+        if (day < parseInt(table[charRow][debutIdx])) return 'Before debut.'
+        if (isNaN(day)) return 'Present day: ' + (getPresentDay(table, char) - timelineStartIdx);
         if (table[charRow].length <= timelineStartIdx + day || !table[charRow][timelineStartIdx + day]) return 'Future';
         for (let i = timelineStartIdx + day; i >= timelineStartIdx; i--) {
           const activity = table[charRow][i];
@@ -485,13 +492,24 @@ module.exports = function() {
       });
   }
 
-  commands.queryDowntime = function([char]) {
+  commands.queryDowntime = function([char, day]) {
     if (!char) return Promise.resolve('No character prefix was provided.');
+    day = parseInt(day);
     return sheetOp.getSheet(TIMELINE_SHEET)
       .then((table) => {
-        const downtimeMap = Object.values(findAllDowntime(table, char));
+        const downtimeObj = findAllDowntime(table, char);
+        const downtimeMap = Object.values(downtimeObj);
         let downtime;
         if (!downtimeMap.length) downtime = 0;
+        else if (!isNaN(day)) {
+          downtime = 0;
+          const timelineStartIdx = table[HEADER_ROW].indexOf(TIMELINE_START_COLUMN);
+          Object.entries(downtimeObj).forEach(([index, stretch]) => {
+            const actualDay = index - timelineStartIdx;
+            if (actualDay + stretch <= day) downtime += stretch;
+            else downtime += Math.max(day - actualDay, 0);
+          });
+        }
         else downtime = Object.values(downtimeMap).reduce((sum, val) => {return sum + val});
         const charRow = sheetOp.getRowWithValue(table, CHAR_COLUMN, char, true);
         return table[charRow][table[HEADER_ROW].indexOf(CHAR_COLUMN)] + ' has '+ downtime + ' downtime days.';

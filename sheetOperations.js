@@ -46,9 +46,9 @@ module.exports = function() {
   */
   operations.getValue = function(table, columnName, value, valueName, prefix) {
     const valueColIndex = table[HEADER_ROW].indexOf(valueName);
-    const charRowIndex = operations.getRowWithValue(table, columnName, value, prefix)
-    if (charRowIndex === -1) return null;
-    return table[charRowIndex][valueColIndex];
+    const rowIndex = operations.getRowWithValue(table, columnName, value, prefix)
+    if (rowIndex === -1) return null;
+    return table[rowIndex][valueColIndex];
   };
 
   /**
