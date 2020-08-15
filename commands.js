@@ -185,6 +185,9 @@ module.exports = function() {
               resolve('Error registering player.');
             });
           }
+          else {
+            resolve();
+          }
         }).catch((err) => {console.log('registerPlayer error: ' + err)});
     })
   };
@@ -283,7 +286,6 @@ module.exports = function() {
         sheetId = PLAYERS_SHEET_ID;
         columnId = ID_COLUMN;
       }
-
       sheetOp.getSheet(sheetName)
         .then((table) => {
           const valueCol = table[HEADER_ROW].indexOf(valueName);
