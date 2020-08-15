@@ -26,12 +26,14 @@ module.exports = function() {
   commands.getCharacterInfo = function(message, args) {
     return new Promise((resolve, reject) => {
       let charName = args[0];
-      let playerId = message.member.user.id;
       if (!charName) resolve('No character name was given.')
       sheetOp.getSheet(CHARACTERS_SHEET)
         .then((table) => {
+          if (!globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]) &&
+              !sheetOp.authorizedCharacter(table, message, charName))
+            resolve('Not authorized to get the data of this character.');
           let mxp = parseInt(sheetOp.getValue(table, CHAR_COLUMN, charName, 'MXP', true));
-          if (mxp === null) resolve('No character by that name exists.');
+          if (isNaN(mxp)) resolve('No character by that name exists.');
           let level = MXP_THRESHOLDS.indexOf(
             MXP_THRESHOLDS.find((th) => {
               return mxp <= th;
@@ -252,12 +254,14 @@ module.exports = function() {
   commands.addValue = function(args) {
     return new Promise((resolve, reject) => {
       let valueName = args[0].toUpperCase();
+      if (!(valueName === 'MXP' || valueName === 'TRB')) resolve('Invalid resource.');
       let amount = 0;
       let characters = [];
       if (!isNaN(args[1])) {
         amount = parseInt(args[1]);
         characters = args.slice(2);
       } else {
+        if (!args[1]) resolve('TRB type not provided.');
         valueName = valueName + "_" + args[1].toUpperCase();
         amount = parseInt(args[2]);
         args.slice(3).forEach((mention) => {
@@ -282,11 +286,11 @@ module.exports = function() {
 
       sheetOp.getSheet(sheetName)
         .then((table) => {
+          const valueCol = table[HEADER_ROW].indexOf(valueName);
           let requests = [];
           characters.forEach((character) => {
             let charRow = sheetOp.getRowWithValue(table, columnId, character, true);
             if (charRow === -1) resolve('One or more of the characters do not exist. No values were added.');
-            let valueCol = table[HEADER_ROW].indexOf(valueName);
             let curValue = table[charRow][valueCol] ? parseInt(table[charRow][valueCol]) : 0;
             let newValue = curValue + amount;
             let req = utils.genUpdateCellsRequest([newValue], sheetId, charRow, valueCol);

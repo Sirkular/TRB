@@ -40,7 +40,7 @@ module.exports = function() {
   /**
   * Gets a value for a character.
   * @param {Array} table - The table to operate on
-  * @param {string} charName - A character's nameChange
+  * @param {string} charName - A character's name
   * @param {string} valueName - The name of the value to query
   * @param {boolean} [prefix] - A flag to designate checking for prefix instead of matching
   */
@@ -80,6 +80,12 @@ module.exports = function() {
     const colArray = table.map(row => row[valueColIndex]);
     return colArray.lastIndexOf(value);
   };
+
+  operations.authorizedCharacter = function(table, message, char) {
+    const playerId = message.member.user.id;
+    const charPlayerId = operations.getValue(table, ID_COLUMN, char, CHAR_COLUMN, true);
+    return parseInt(playerId) === parseInt(charPlayerId);
+  }
 
   return operations;
 };

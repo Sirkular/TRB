@@ -9,6 +9,22 @@ TIMELINE_SHEET = 'Timeline';
 
 if (!DEV_MODE) require('dotenv').config();
 
+globe = {};
+
+globe.roles = {
+  GM: 'GM',
+  TRIAL_GM: 'Trial GM',
+};
+
+/**
+* @param message - A Discord.js message object.
+* @param authorizedRoles - An array of enums from roles.
+*/
+globe.authorized = function(message, authorizedRoles) {
+  const authorRoles = message.member.roles.cache;
+  return !!authorRoles.find(role => authorizedRoles.includes(role.name));
+};
+
 ///////////////////////////////Discord Setup///////////////////////////////////
 
 const Discord = require('discord.js');
@@ -81,15 +97,19 @@ client.on('message', async message => {
     message.channel.send(help.getHelp(args));
   }
   else if (command === 'info') {
-    if (args.length == 0 || message.mentions.users.first()) {
-      commands.getPlayerInfo(message, args).then((output) => {
-        message.channel.send(output);
-      });
+    if (args.length == 0) {
+      commands.getPlayerInfo(message, args).then(sendToChannel);
+    }
+    else if (message.mentions.users.first()) {
+      if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM])) {
+        commands.getPlayerInfo(message, args).then(sendToChannel);
+      }
+      else {
+        sendToChannel('Not authorized.');
+      }
     }
     else {
-      commands.getCharacterInfo(message, args).then((output) => {
-        message.channel.send(output);
-      });
+      commands.getCharacterInfo(message, args).then(sendToChannel);
     }
   }
   else if (command === 'char') {
@@ -97,48 +117,60 @@ client.on('message', async message => {
       commands.registerCharacter(message, args).then(sendToChannel);
     }
     else if (args[0] === 'delete') {
-      commands.deleteCharacter(message, args).then(sendToChannel);
+      if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM])) {
+        commands.deleteCharacter(message, args).then(sendToChannel);
+      }
+      else {
+        sendToChannel('Not authorized.');
+      }
     }
     else if (args[0] === 'list') {
       commands.listCharacter(message, args).then(sendToChannel);
     }
   }
   else if (command === 'add') {
-    if (args[0] == 'trb') {
-      commands.registerPlayer(message, args).then((output) => {
-        commands.addValue(args).then((output) => {
-          message.channel.send(output);
+    if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM])) {
+      if (!args[0]) {
+        sendToChannel('No resource entered.');
+      }
+      else if (args[0] === 'trb') {
+        commands.registerPlayer(message, args).then((output) => {
+          commands.addValue(args).then(sendToChannel);
         });
-      });
+      }
+      else {
+        commands.addValue(args).then(sendToChannel);
+      }
     }
-    else {
-      commands.addValue(args).then((output) => {
-        message.channel.send(output);
-      });
-    }
+    else
+      sendToChannel('Not authorized.');
   }
   else if (command === 'timeline') {
-    switch(args[0]) {
-      case 'advance':
+    if (args[0] === 'advance') {
+      if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]))
         commands.advanceTimeline(args.slice(1)).then(sendToChannel);
-        break;
-      case 'query':
-        commands.queryTimeline(args.slice(1)).then(sendToChannel);
-        break;
-      default:
-        sendToChannel('Please enter one of the following: \`advance\` or \`query\`');
+      else
+        sendToChannel('Not authorized.');
+    }
+    else if (args[0] === 'query') {
+      commands.queryTimeline(args.slice(1)).then(sendToChannel);
+    }
+    else {
+      sendToChannel('Please enter one of the following: \`advance\` or \`query\`');
     }
   }
   else if (command === 'downtime') {
-    switch(args[0]) {
-      case 'spend':
+    if (args[0] === 'spend') {
+      if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]))
         commands.spendDowntime(args.slice(1)).then(sendToChannel);
-        break;
-      case 'query':
-        commands.queryDowntime(args.slice(1)).then(sendToChannel);
-        break;
-      default:
-        sendToChannel('Please provide one of the following: \`spend\` or \`query\`');
+      else
+        sendToChannel('Not authorized.');
+    }
+    else if (args[0] === 'query') {
+      commands.queryDowntime(args.slice(1)).then(sendToChannel);
+    }
+    else {
+      sendToChannel('Please provide one of the following: \`spend\` or \`query\`');
     }
   }
   else {
