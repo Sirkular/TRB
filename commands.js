@@ -418,7 +418,7 @@ module.exports = function() {
         const timelineStartIdx = table[HEADER_ROW].indexOf(TIMELINE_START_COLUMN);
         const debutIdx = table[HEADER_ROW].indexOf(DEBUT_COLUMN);
         if (isNaN(parseInt(table[charRow][debutIdx]))) return 'Character has not debuted.'
-        if (day < parseInt(table[charRow][debutIdx])) return 'Before debut.'
+        if (day < parseInt(table[charRow][debutIdx]) - timelineStartIdx) return 'Before debut.'
         if (isNaN(day)) return 'Present day: ' + (getPresentDay(table, char) - timelineStartIdx);
         if (table[charRow].length <= timelineStartIdx + day || !table[charRow][timelineStartIdx + day]) return 'Future';
         for (let i = timelineStartIdx + day; i >= timelineStartIdx; i--) {
