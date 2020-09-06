@@ -189,7 +189,6 @@ module.exports = function() {
               });
               }
           }
-          resolve();
         }).catch((err) => {console.log('registerPlayer error: ' + err)});
     })
   };
@@ -290,6 +289,7 @@ module.exports = function() {
       }
       sheetOp.getSheet(sheetName)
         .then((table) => {
+          console.log(table)
           const valueCol = table[HEADER_ROW].indexOf(valueName);
           let requests = [];
           characters.forEach((character) => {
