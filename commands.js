@@ -150,44 +150,46 @@ module.exports = function() {
 
   commands.registerPlayer = function(message, args) {
     return new Promise((resolve, reject) => {
-      let playerId = message.member.user.id;
       let playerName = message.member.user.tag;
       sheetOp.getSheet(PLAYERS_SHEET)
         .then((table) => {
           let requests = [];
           let headerTags = table[HEADER_ROW];
           let idRowIdx = headerTags.indexOf(ID_COLUMN);
-          let playerArr = [];
-          let newPlayer = true;
-          for (i = 0; i < table.length; i++) {
-            if (table[i][idRowIdx] == playerId) {
-              newPlayer = false;
-            }
-          }
 
-          if (newPlayer) {
-            for (i = 0; i < headerTags.length; i++) {
-              if (headerTags[i] === ID_COLUMN) {
-                playerArr.push(playerId);
-              }
-              else {
-                playerArr.push(0);
+          let playerList = args.slice(3);
+          for (j = 0; j < playerList.length; j++) {
+            let playerArr = [];
+            let playerId = playerList[j].slice(3, -1);
+            let newPlayer = true;
+            for (i = 0; i < table.length; i++) {
+              if (table[i][idRowIdx] == playerId) {
+                newPlayer = false;
               }
             }
-            let req = utils.genAppendDimRequest(PLAYERS_SHEET_ID, table.length, 1);
-            requests.push(req)
-            req = utils.genUpdateCellsRequest(playerArr, PLAYERS_SHEET_ID, table.length, idRowIdx);
-            requests.push(req);
 
-            sheetOp.sendRequests(requests).then(() => {
-              resolve('Registered ' + message.member.user.toString() + '.');
-            }).catch(() => {
-              resolve('Error registering player.');
-            });
+            if (newPlayer) {
+              for (i = 0; i < headerTags.length; i++) {
+                if (headerTags[i] === ID_COLUMN) {
+                  playerArr.push(playerId);
+                }
+                else {
+                  playerArr.push(0);
+                }
+              }
+              let req = utils.genAppendDimRequest(PLAYERS_SHEET_ID, table.length, 1);
+              requests.push(req)
+              req = utils.genUpdateCellsRequest(playerArr, PLAYERS_SHEET_ID, table.length, idRowIdx);
+              requests.push(req);
+
+              sheetOp.sendRequests(requests).then(() => {
+                resolve('Registered ' + message.member.user.toString() + '.');
+              }).catch(() => {
+                resolve('Error registering player.');
+              });
+              }
           }
-          else {
-            resolve();
-          }
+          resolve();
         }).catch((err) => {console.log('registerPlayer error: ' + err)});
     })
   };
