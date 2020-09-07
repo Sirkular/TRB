@@ -138,10 +138,12 @@ module.exports = function() {
       }
 
       function timelineRegistration(table) {
+        let idRowIdx = table[HEADER_ROW].indexOf(ID_COLUMN);
         let charNameRowIdx = table[HEADER_ROW].indexOf(CHAR_COLUMN);
         let requests = [];
         const sheetId = TIMELINE_SHEET_ID;
         requests.push(utils.genAppendDimRequest(TIMELINE_SHEET_ID, true, 1));
+        requests.push(utils.genUpdateCellsRequest([playerId], sheetId, table.length, idRowIdx));
         requests.push(utils.genUpdateCellsRequest([charName], sheetId, table.length, charNameRowIdx));
         return requests;
       }
@@ -327,7 +329,7 @@ module.exports = function() {
       return Promise.resolve('A starting day cannot be provided with advance.');
     const days = parseInt(args[numIndex + (setPeriod ? 1 : 0)]);
     const startingDay = setPeriod ? parseInt(args[numIndex]) : NaN;
-    const reason = args.slice(numIndex + (setPeriod ? 2 : 1)).join(' ');  
+    const reason = args.slice(numIndex + (setPeriod ? 2 : 1)).join(' ');
     if ((isNaN(days) || isNaN(startingDay)) && setPeriod) return Promise.resolve('Either days or startingDay not provided.');
     if (isNaN(days)) return Promise.resolve('Days not provided or is not a number.');
     if (isNaN(startingDay) && setPeriod) return Promise.resolve('Starting day not provided or is not a number.');
@@ -432,7 +434,7 @@ module.exports = function() {
         if (isNaN(parseInt(table[charRow][debutIdx]))) return 'Character has not debuted.'
         if (day < parseInt(table[charRow][debutIdx]) - timelineStartIdx) return 'Before debut.'
         if (isNaN(day)) return 'Present day: ' + (getPresentDay(table, char) - timelineStartIdx);
-        if (table[charRow].length <= timelineStartIdx + day || !table[charRow][timelineStartIdx + day]) return 'Future';
+        if (table[charRow].length <= timelineStartIdx + day || !table[charRow][timelineStartIdx + day]) return 'After present day.';
         for (let i = timelineStartIdx + day; i >= timelineStartIdx; i--) {
           const activity = table[charRow][i];
           if (activity !== TIMELINE_ACTIVITY_PLACEHOLDER) return activity;
@@ -508,11 +510,14 @@ module.exports = function() {
       });
   }
 
-  commands.queryDowntime = function([char, day]) {
+  commands.queryDowntime = function(message, char, day) {
     if (!char) return Promise.resolve('No character prefix was provided.');
     day = parseInt(day);
     return sheetOp.getSheet(TIMELINE_SHEET)
       .then((table) => {
+        if (!globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]) &&
+            !sheetOp.authorizedCharacter(table, message, char))
+          return 'Not authorized to get the data of this character.';
         const downtimeObj = findAllDowntime(table, char);
         const downtimeMap = Object.values(downtimeObj);
         let downtime;

@@ -172,8 +172,8 @@ client.on('message', async message => {
       else
         sendToChannel('Not authorized.');
     }
-    else if (args[0] === 'query') {
-      commands.queryDowntime(args.slice(1)).then(sendToChannel);
+    else if (args[0] === 'check') {
+      commands.queryDowntime(message, ...args.slice(1)).then(sendToChannel);
     }
     else {
       sendToChannel('Please provide one of the following: \`spend\` or \`query\`');
