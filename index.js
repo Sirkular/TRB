@@ -152,11 +152,17 @@ client.on('message', async message => {
       else
         sendToChannel('Not authorized.');
     }
-    else if (args[0] === 'query') {
+    else if (args[0] === 'setperiod') {
+      if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]))
+        commands.advanceTimeline(args.slice(1), true).then(sendToChannel);
+      else
+        sendToChannel('Not authorized.');
+    }
+    else if (args[0] === 'check') {
       commands.queryTimeline(args.slice(1)).then(sendToChannel);
     }
     else {
-      sendToChannel('Please enter one of the following: \`advance\` or \`query\`');
+      sendToChannel('Please enter one of the following: \`advance\`, \`setperiod\`, or \`check\`');
     }
   }
   else if (command === 'downtime') {

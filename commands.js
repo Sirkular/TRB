@@ -320,15 +320,20 @@ module.exports = function() {
   * character farthest in the future with the downtime reason, then add the
   * number of days.
   */
-  commands.advanceTimeline = function(args) {
-    const daysIndex = args.findIndex(val => !isNaN(parseInt(val)));
-    const chars = args.slice(0, daysIndex);
-    const days = parseInt(args[daysIndex]);
-    const startingDay = parseInt(args[daysIndex + 1]);
-    const reason = args.slice(daysIndex + (isNaN(startingDay) ? 1 : 2)).join(' ');
+  commands.advanceTimeline = function(args, setPeriod) {
+    const numIndex = args.findIndex(val => !isNaN(parseInt(val)));
+    const chars = args.slice(0, numIndex);
+    if (!setPeriod && !isNaN(parseInt(args[numIndex]) + parseInt(args[numIndex + 1])))
+      return Promise.resolve('A starting day cannot be provided with advance.');
+    const days = parseInt(args[numIndex + (setPeriod ? 1 : 0)]);
+    const startingDay = setPeriod ? parseInt(args[numIndex]) : NaN;
+    const reason = args.slice(numIndex + (setPeriod ? 2 : 1)).join(' ');  
+    if ((isNaN(days) || isNaN(startingDay)) && setPeriod) return Promise.resolve('Either days or startingDay not provided.');
     if (isNaN(days)) return Promise.resolve('Days not provided or is not a number.');
-    if (!reason) return Promise.resolve('No activity was provided.');
+    if (isNaN(startingDay) && setPeriod) return Promise.resolve('Starting day not provided or is not a number.');
     if (!chars.length) return Promise.resolve('No character prefix(es) were provided.');
+    if (!reason) return Promise.resolve('No activity was provided.');
+
     // Ensure startingDay is after character farthest in the future.
     // If no character has debuted and startingDay is not defined... error.
     return sheetOp.getSheet(TIMELINE_SHEET)
