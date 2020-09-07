@@ -156,6 +156,7 @@ module.exports = function() {
           let requests = [];
           let headerTags = table[HEADER_ROW];
           let idRowIdx = headerTags.indexOf(ID_COLUMN);
+          let numNewPlayers = 0;
 
           let playerList = args.slice(3);
           for (j = 0; j < playerList.length; j++) {
@@ -177,18 +178,21 @@ module.exports = function() {
                   playerArr.push(0);
                 }
               }
-              let req = utils.genAppendDimRequest(PLAYERS_SHEET_ID, table.length, 1);
-              requests.push(req)
-              req = utils.genUpdateCellsRequest(playerArr, PLAYERS_SHEET_ID, table.length, idRowIdx);
+              req = utils.genUpdateCellsRequest(playerArr, PLAYERS_SHEET_ID, table.length + numNewPlayers, idRowIdx);
               requests.push(req);
-
-              sheetOp.sendRequests(requests).then(() => {
-                resolve('Registered ' + message.member.user.toString() + '.');
-              }).catch(() => {
-                resolve('Error registering player.');
-              });
-              }
+              numNewPlayers++;
+            }
           }
+          if (requests.length) {
+            let req = utils.genAppendDimRequest(PLAYERS_SHEET_ID, table.length, numNewPlayers);
+            requests.splice(0, 0, req);
+            sheetOp.sendRequests(requests).then(() => {
+              resolve('Registered ' + message.member.user.toString() + '.');
+            }).catch(() => {
+              resolve('Error registering player.');
+            });
+          }
+          else resolve();
         }).catch((err) => {console.log('registerPlayer error: ' + err)});
     })
   };
@@ -289,7 +293,6 @@ module.exports = function() {
       }
       sheetOp.getSheet(sheetName)
         .then((table) => {
-          console.log(table)
           const valueCol = table[HEADER_ROW].indexOf(valueName);
           let requests = [];
           characters.forEach((character) => {
