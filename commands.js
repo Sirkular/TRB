@@ -322,7 +322,7 @@ module.exports = function() {
   * character farthest in the future with the downtime reason, then add the
   * number of days.
   */
-  commands.advanceTimeline = function(args, setPeriod) {
+  commands.advanceTimeline = function(message, args, setPeriod) {
     const numIndex = args.findIndex(val => !isNaN(parseInt(val)));
     const chars = args.slice(0, numIndex);
     if (!setPeriod && !isNaN(parseInt(args[numIndex]) + parseInt(args[numIndex + 1])))
@@ -348,50 +348,84 @@ module.exports = function() {
         });
         if (!charDays.some(day => day !== -1) && isNaN(startingDay))
           return 'Every character is debuting but no starting day was provided.';
+
+        let lowest = charDays[0];
         let baseline = -1;
         charDays.forEach((day) => {
+          lowest = Math.min(lowest, day);
           baseline = Math.max(baseline, day);
         });
-
         const timelineStartIdx = table[HEADER_ROW].indexOf(TIMELINE_START_COLUMN);
-        if (!isNaN(startingDay)) {
-          if (baseline > startingDay + timelineStartIdx)
-            return 'Given starting day was before ' + chars[charDays.indexOf(baseline)] + '\'s present day: day ' + (baseline - timelineStartIdx);
-          baseline = startingDay + timelineStartIdx;
+
+        // Check for large disparities between characters
+        if (baseline - lowest >= 7) {
+          let combined = chars.map((char, index) => {
+            return {char: char, day: charDays[index] - timelineStartIdx};
+          }).sort((a, b) => {
+            return a.day - b.day;
+          }).reduce((out, val) => {
+            return out + val.char + ' : ' + val.day.toString() + '\n';
+          }, 'Character Present Days\n');
+          combined += 'Do you want to proceed with advancing the timeline? ' +
+          'Respond with `override` to proceed or anything else to stop.';
+          return message.channel.send(combined).then(() => {
+            const filter = response => {
+              return response.author.id === message.author.id;
+            };
+            return message.channel.awaitMessages(filter, {max: 1, time: 30000, errors: ['time']})
+              .then(collected => {
+                if (collected.first().content.toLowerCase() === 'override')
+                  return executeUpdates();
+                return 'Stopped. No changes were made.';
+              })
+              .catch(collected => {
+                return 'Override timed out. No changes were made.';
+              });
+          });
         }
+        return executeUpdates();
 
-        let requests = [];
 
-        if (table[HEADER_ROW].length < baseline + days) {
-          let values = [];
-          for (let i = table[HEADER_ROW].length; i < baseline + days; i++) {
-            values.push('Day ' + (i - timelineStartIdx));
+        function executeUpdates() {
+          if (!isNaN(startingDay)) {
+            if (baseline > startingDay + timelineStartIdx)
+              return 'Given starting day was before ' + chars[charDays.indexOf(baseline)] + '\'s present day: day ' + (baseline - timelineStartIdx);
+            baseline = startingDay + timelineStartIdx;
           }
-          requests.push(utils.genAppendDimRequest(TIMELINE_SHEET_ID, false, baseline + days - table[HEADER_ROW].length));
-          requests.push(utils.genUpdateCellsRequest(values, TIMELINE_SHEET_ID, HEADER_ROW, table[HEADER_ROW].length));
-        }
 
-        charDays.forEach((day, index) => {
-          let values = [];
-          if (day === -1) { // New character, fresh debut.
-            const debutIdx = table[HEADER_ROW].indexOf(DEBUT_COLUMN);
-            requests.push(utils.genUpdateCellsRequest([baseline], TIMELINE_SHEET_ID, charRows[index], debutIdx));
-            day = baseline;
+          let requests = [];
+
+          if (table[HEADER_ROW].length < baseline + days) {
+            let values = [];
+            for (let i = table[HEADER_ROW].length; i < baseline + days; i++) {
+              values.push('Day ' + (i - timelineStartIdx));
+            }
+            requests.push(utils.genAppendDimRequest(TIMELINE_SHEET_ID, false, baseline + days - table[HEADER_ROW].length));
+            requests.push(utils.genUpdateCellsRequest(values, TIMELINE_SHEET_ID, HEADER_ROW, table[HEADER_ROW].length));
           }
-          else if (day < baseline) { // Sync character to latest character by filling in with downtime.
-            values = ['Downtime'];
-            for (let i = day + 1; i < baseline; i++) {
+
+          charDays.forEach((day, index) => {
+            let values = [];
+            if (day === -1) { // New character, fresh debut.
+              const debutIdx = table[HEADER_ROW].indexOf(DEBUT_COLUMN);
+              requests.push(utils.genUpdateCellsRequest([baseline], TIMELINE_SHEET_ID, charRows[index], debutIdx));
+              day = baseline;
+            }
+            else if (day < baseline) { // Sync character to latest character by filling in with downtime.
+              values = ['Downtime'];
+              for (let i = day + 1; i < baseline; i++) {
+                values.push(TIMELINE_ACTIVITY_PLACEHOLDER);
+              }
+            }
+            values.push(reason);
+            for (let i = baseline + 1; i < baseline + days; i++) {
               values.push(TIMELINE_ACTIVITY_PLACEHOLDER);
             }
-          }
-          values.push(reason);
-          for (let i = baseline + 1; i < baseline + days; i++) {
-            values.push(TIMELINE_ACTIVITY_PLACEHOLDER);
-          }
-          requests.push(utils.genUpdateCellsRequest(values, TIMELINE_SHEET_ID, charRows[index], day));
-        });
+            requests.push(utils.genUpdateCellsRequest(values, TIMELINE_SHEET_ID, charRows[index], day));
+          });
 
-        sheetOp.sendRequests(requests);
+          sheetOp.sendRequests(requests);
+        }
       })
       .then((msg) => {
         return msg ? msg : ('Timeline advanced for ' + chars.join(', '));

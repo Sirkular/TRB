@@ -148,13 +148,13 @@ client.on('message', async message => {
   else if (command === 'timeline') {
     if (args[0] === 'advance') {
       if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]))
-        commands.advanceTimeline(args.slice(1)).then(sendToChannel);
+        commands.advanceTimeline(message, args.slice(1)).then(sendToChannel);
       else
         sendToChannel('Not authorized.');
     }
     else if (args[0] === 'setperiod') {
       if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]))
-        commands.advanceTimeline(args.slice(1), true).then(sendToChannel);
+        commands.advanceTimeline(message, args.slice(1), true).then(sendToChannel);
       else
         sendToChannel('Not authorized.');
     }
