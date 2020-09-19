@@ -84,7 +84,7 @@ module.exports = function() {
           requests = requests.concat(timelineRegistration(timelineTable));
           return requests;
         })
-        .then(sheetOp.sendRequests)
+        .then((requests) => sheetOp.sendRequests(requests, message))
         .then(() => {
           resolve('Registered ' + charName + ' for ' + message.member.user.toString() + '.');
         })
@@ -188,7 +188,7 @@ module.exports = function() {
           if (requests.length) {
             let req = utils.genAppendDimRequest(PLAYERS_SHEET_ID, table.length, numNewPlayers);
             requests.splice(0, 0, req);
-            sheetOp.sendRequests(requests).then(() => {
+            sheetOp.sendRequests(requests, message).then(() => {
               resolve('Registered ' + message.member.user.toString() + '.');
             }).catch(() => {
               resolve('Error registering player.');
@@ -222,7 +222,7 @@ module.exports = function() {
             resolve('No character exists for ' + message.member.user.toString() + ' named: ' + charName);
           }
           else {
-            sheetOp.sendRequests(requests).then(() => {
+            sheetOp.sendRequests(requests, message).then(() => {
               resolve('Successfully deleted character.');
             }).catch(() => {
               resolve('Error deleting character.');
@@ -261,7 +261,7 @@ module.exports = function() {
   * Add a numerical amount of a value to character(s)
   * args format: (valueName, amount, character prefixes...)
   */
-  commands.addValue = function(args) {
+  commands.addValue = function(message, args) {
     return new Promise((resolve, reject) => {
       let valueName = args[0].toUpperCase();
       if (!(valueName === 'MXP' || valueName === 'TRB')) resolve('Invalid resource.');
@@ -305,7 +305,7 @@ module.exports = function() {
             let req = utils.genUpdateCellsRequest([newValue], sheetId, charRow, valueCol);
             requests.push(req);
           });
-          sheetOp.sendRequests(requests).then(() => {
+          sheetOp.sendRequests(requests, message).then(() => {
             resolve('Successfully added values.');
           }).catch(() => {
             resolve('Error adding value to character(s).');
@@ -424,7 +424,7 @@ module.exports = function() {
             requests.push(utils.genUpdateCellsRequest(values, TIMELINE_SHEET_ID, charRows[index], day));
           });
 
-          sheetOp.sendRequests(requests);
+          sheetOp.sendRequests(requests, message);
         }
       })
       .then((msg) => {
@@ -503,7 +503,7 @@ module.exports = function() {
   /**
   * Set the downtime activity for a stretch of free downtime.
   */
-  commands.spendDowntime = function([char, days, ...reason]) {
+  commands.spendDowntime = function(message, [char, days, ...reason]) {
     days = parseInt(days);
     if (!char) return Promise.resolve('No character prefix was provided.');
     if (isNaN(days)) return Promise.resolve('An invalid number of days was provided.');
@@ -531,7 +531,7 @@ module.exports = function() {
 
         return requests;
       })
-      .then(sheetOp.sendRequests)
+      .then((requests) => sheetOp.sendRequests(requests, message))
       .then((res, err) => {
         if (err) {
           console.log(err);

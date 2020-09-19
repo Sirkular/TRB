@@ -3,9 +3,11 @@ SPREADSHEET_ID = '1cbxNvmAEqEGeHtaf09ZaWV3YF9Rmz2F6vayabfYWyf4';
 CHARACTERS_SHEET_ID = '0';
 PLAYERS_SHEET_ID = '1510652814';
 TIMELINE_SHEET_ID = '415116931';
+LOGS_SHEET_ID = '1031156454';
 CHARACTERS_SHEET = 'Characters';
 PLAYERS_SHEET = 'Players';
 TIMELINE_SHEET = 'Timeline';
+LOGS_SHEET = 'Logs'
 
 if (!DEV_MODE) require('dotenv').config();
 
@@ -135,11 +137,11 @@ client.on('message', async message => {
       }
       else if (args[0] === 'trb') {
         commands.registerPlayer(message, args).then((output) => {
-          commands.addValue(args).then(sendToChannel);
+          commands.addValue(message, args).then(sendToChannel);
         });
       }
       else {
-        commands.addValue(args).then(sendToChannel);
+        commands.addValue(message, args).then(sendToChannel);
       }
     }
     else
@@ -168,7 +170,7 @@ client.on('message', async message => {
   else if (command === 'downtime') {
     if (args[0] === 'spend') {
       if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]))
-        commands.spendDowntime(args.slice(1)).then(sendToChannel);
+        commands.spendDowntime(message, args.slice(1)).then(sendToChannel);
       else
         sendToChannel('Not authorized.');
     }
