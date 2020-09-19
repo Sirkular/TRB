@@ -25,14 +25,21 @@ module.exports = function() {
     });
   };
 
-  operations.sendRequests = function(requests) {
+  operations.sendRequests = function(requests, message, log=false) {
     return new Promise(async function(resolve, reject) {
       sheets.spreadsheets.batchUpdate(utils.genBatchUpdateBody(auth, requests), (err, res) => {
         if (err) {
           console.error(err);
           reject();
         }
-        else resolve();
+        else {
+          if (log) {
+            resolve();
+          } else {
+            operations.addLogs(message);
+            resolve();
+          }
+        }
       });
     });
   };
@@ -86,6 +93,40 @@ module.exports = function() {
     const charPlayerId = operations.getValue(table, ID_COLUMN, char, CHAR_COLUMN, true);
     return parseInt(playerId) === parseInt(charPlayerId);
   }
+
+  /**
+  * Adds a row of data to specified sheet and row location.
+  * @param {Array} sheet - The sheet ID to add to
+  * @param {string} data - array of data needed to be added from left to right.
+  * @param {string} location - Row number needed to be added to. (0 for first row, 1 for last row)
+  */
+  operations.addRowToSheet = function(sheet, sheetId, data, location, message, log) {
+    return operations.getSheet(sheet)
+      .then((table) => {
+        let req;
+        let requests = [];
+
+        if (location == 0) {
+          req = utils.genInsertRowRequest(true, sheetId, 1, 2);
+          requests.push(req);
+          req = utils.genUpdateCellsRequest(data, sheetId, 1, 0);
+          requests.push(req); 
+        };
+
+        operations.sendRequests(requests, message, log);
+      });
+  };
+
+  /**
+  * Adds logging from a specific message.
+  * @param {message} initial message request
+  */
+  operations.addLogs = function(message) {
+    var today = new Date();
+    operations.addRowToSheet(LOGS_SHEET, LOGS_SHEET_ID, [message.author.id, message.author.username, today.toUTCString(), message.content], 0, message, true);
+    return;
+  }
+
 
   return operations;
 };
