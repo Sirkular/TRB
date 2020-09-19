@@ -31,21 +31,24 @@ module.exports = function() {
         },
       },
       "timeline": {
-        "main": "Command for adjusting character timelines.\n\`timeline <advance/query>\`",
+        "main": "Command for adjusting character timelines.\n\`timeline <advance/setperiod/query>\`",
         "sub": {
-          "advance": "Finds the character farthest in the future out of all characters " +
-                  "provided and syncs the other characters' timeline to the farthest by " +
-                  "filling in the disparity with downtime.\n" +
-                  "*startingDay* is an optional number that will be the baseline " +
-                  "with which to sync all characters using downtime.",
-          "query": "Outputs what activity the character is partaking in on \`day\`.",
+          "advance": "Finds the character farthest in the future out of all characters provided " + 
+                     "and syncs the other characters' timeline to the farthest by filling in the disparity with downtime, " +
+                     "then advances their timeline by <DAYS> days with <ACTIVITY>.\n" + 
+                     "\`timeline advance <CHARACTER NAME 1> <CHARACTER NAME 2> ... <DAYS> <ACTIVITY>\`",
+          "setperiod": "Syncs all characters' timeline to <STARTING DAY> by filling in the disparity with downtime, then advances their timeline by <DAYS> days with <ACTIVITY>.\n" +
+                       "\`timeline setperiod <CHARACTER NAME 1> <CHARACTER NAME 2> ... <STARTING DAY> <DAYS> <ACTIVITY>\`",
+          "query": "Outputs what activity the character is partaking in on <DAY>.\n\`timeline query <CHARACTER NAME> <DAY>\`",
         },
       },
       "downtime": {
         "main": "Allows players to use and look at their downtime.\n\`downtime <spend/query>\`",
         "sub": {
-          "spend": "Spends \`days\` of a character\'s downtime days doing \`activity\`. Is retroactively applied.",
-          "query": "Outputs how many downtime days a character has.",
+          "spend": "Spends <DAYS> of a character\'s downtime days doing <ACTIVITY>. Is retroactively applied.\n" + 
+                   "\`downtime spend <CHARACTER NAME> <DAYS> <ACTIVITY>\`",
+          "query": "Outputs how many downtime days a character has. If <DAY> is specified, outputs how many downtime days a character has up to that day, excluding the day itself.\n" +
+                   "\`downtime query <CHARACTER NAME> <DAY>\`",
         },
       },
     },
@@ -91,18 +94,18 @@ module.exports = function() {
 
     let fields = [];
     for (var category in help_commands) {
-      let desc = ""
       for (var command in help_commands[category]) {
-        desc += "**__" + command + ":__**\n";
+        let desc = ""
         for (var sub_command in help_commands[category][command]["sub"]) {
-          desc += "**" + sub_command + ":**" + help_commands[category][command]["sub"][sub_command] + "\n\n";
+          desc += "**" + sub_command + ": **" + help_commands[category][command]["sub"][sub_command] + "\n\n";
         };
+
+        fields.push({
+          name: command.toUpperCase(),
+          value: desc
+        });
       };
 
-      fields.push({
-        name: category,
-        value: desc
-      });
     };
 
     embed.addFields(fields);
