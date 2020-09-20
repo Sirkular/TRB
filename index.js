@@ -129,6 +129,9 @@ client.on('message', async message => {
     else if (args[0] === 'list') {
       commands.listCharacter(message, args).then(sendToChannel);
     }
+    else if (args[0] === 'update') {
+      commands.updateCharacter(message, args).then(sendToChannel);
+    }
   }
   else if (command === 'add') {
     if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM])) {

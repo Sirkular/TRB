@@ -7,6 +7,19 @@ module.exports = function() {
   ID_COLUMN = 'ID';
   CHAR_COLUMN = 'CHAR_NAME';
   MXP_COLUMN = 'MXP';
+  RACE_COLUMN = 'RACE';
+  SUBRACE_COLUMN = 'SUBRACE';
+  GENDER_COLUMN = 'GENDER';
+  CLASS_COLUMN = 'CLASS';
+  CUMULATIVE_LEVEL_COLUMN = 'CUMULATIVE_LEVEL'
+  STATUS_COLUMN = 'STATUS';
+  NATIVE_COLUMN = 'NATIVE';
+  REGION_COLUMN = 'REGION';
+  VAULT_COLUMN = 'VAULT';
+  BACKGROUND_COLUMN = 'BACKGROUND';
+  ALIGNMENT_COLUMN = 'ALIGNMENT';
+  BACKSTORY_COLUMN = 'BACKSTORY';
+  IMAGE_COLUMN = 'IMAGE';
   TRB_DM_COLUMN = 'TRB_DM';
   TRB_PLAYER_COLUMN = 'TRB_PLAYER';
   TRB_SPECIAL_COLUMN = 'TRB_SPECIAL';
@@ -24,6 +37,8 @@ module.exports = function() {
   MXP_THRESHOLDS.push(Number.MAX_SAFE_INTEGER);
 
   commands.getCharacterInfo = function(message, args) {
+    info = [RACE_COLUMN, SUBRACE_COLUMN, GENDER_COLUMN, CLASS_COLUMN, STATUS_COLUMN, BACKGROUND_COLUMN, NATIVE_COLUMN, REGION_COLUMN, VAULT_COLUMN, ALIGNMENT_COLUMN, BACKSTORY_COLUMN];
+
     return new Promise((resolve, reject) => {
       let charName = args[0];
       if (!charName) resolve('No character name was given.')
@@ -32,18 +47,37 @@ module.exports = function() {
           if (!globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]) &&
               !sheetOp.authorizedCharacter(table, message, charName))
             resolve('Not authorized to get the data of this character.');
-          let mxp = parseInt(sheetOp.getValue(table, CHAR_COLUMN, charName, 'MXP', true));
-          if (isNaN(mxp)) resolve('No character by that name exists.');
-          let level = MXP_THRESHOLDS.indexOf(
-            MXP_THRESHOLDS.find((th) => {
-              return mxp <= th;
-            })
-          ) - 1;
 
-          let out = 'Level: ' + level + '\n';
-          out += 'Current MXP: ' + mxp + '\n';
-          out += 'MXP to next level: ' + (MXP_THRESHOLDS[level + 1] - mxp) + '\n';
-          resolve(out);
+          let columnHdr = table[0];
+          let location = {};
+          // location[ID_COLUMN] = message.author.id;
+          location[CHAR_COLUMN] = charName;
+          let row = sheetOp.getRowWithValue(table, CHAR_COLUMN, charName, true);
+          if (!row) {
+            return resolve('Character does not exist!');
+          }
+          let data = table[row];
+
+          let mxp = data[columnHdr.indexOf(MXP_COLUMN)];
+          let level = MXP_THRESHOLDS.indexOf(MXP_THRESHOLDS.find((th) => {return mxp <= th;}));
+          let embed = utils.constructEmbed(charName, "Level: " + level + ". MXP: " + mxp +
+              ". MXP to next level: " + (MXP_THRESHOLDS[level + 1] - mxp) + ".");
+
+          let fields = [];
+          for (i = 0; i < info.length; i++) {
+            fields.push({
+              name: info[i],
+              value: (typeof data[columnHdr.indexOf(info[i])] === 'undefined') ? 'Not Set' : data[columnHdr.indexOf(info[i])],
+              inline: true,
+            });
+          };
+
+          embed.addFields(fields);
+          if (data[columnHdr.indexOf(IMAGE_COLUMN)]) {
+            embed.setImage(data[columnHdr.indexOf(IMAGE_COLUMN)]);
+          };
+
+          resolve({embed});
         }).catch((err) => {console.log('getCharacterInfo error: ' + err)});
     });
   };
@@ -254,6 +288,62 @@ module.exports = function() {
 
           resolve('Registered characters for ' + message.member.user.toString() + ': ' + charList.join(', '));
         }).catch((err) => {console.log('listCharacter error: ' + err)});
+    });
+  }
+
+  commands.updateCharacter = function(message, args) {
+    updatable = [RACE_COLUMN, SUBRACE_COLUMN, GENDER_COLUMN, CLASS_COLUMN, STATUS_COLUMN, NATIVE_COLUMN, REGION_COLUMN, VAULT_COLUMN, BACKGROUND_COLUMN, ALIGNMENT_COLUMN, BACKSTORY_COLUMN, IMAGE_COLUMN];
+    return new Promise((resolve, reject) => {
+      let location = {};
+      location[ID_COLUMN] = message.author.id;
+      if (!args[1]) resolve('Please specify which character you are updating!');
+      location[CHAR_COLUMN] = args[1];
+
+      let updates = {};
+      if (!args[2] && args[1] != 'help') {
+        return resolve('You need to specify what you want to update! You can choose from: Race, Subrace, Gender, Class, Status, Native, Region, Vault, Background, Alignment, Backstory, Image.\n' +
+            'You can also do \`\\char update help\` for more information');
+      }
+      else if (args[1] != 'help' && updatable.includes(args[2].toUpperCase())) {
+        updates[args[2].toUpperCase()] = args.slice(3).join(' ');
+      }
+      else if (args[1] != 'help' && args[2].includes('\n')) {
+        location[CHAR_COLUMN] = location[CHAR_COLUMN].replace('\n', '');
+        let updateArgs = args.slice(2).join(' ').split('\n');
+        for (i = 0; i < updateArgs.length; i++) {
+          let updateArg = updateArgs[i].split(':');
+          if (updateArg[1]) {
+            updates[updateArg[0]] = updateArg.slice(1).join(':').trim();
+          };
+        };
+      }
+      else {
+        return resolve("You can update the following individually by \`\\char update <CHARACTER NAME> <CATEGORY> <VALUE>\` or using the template: \n" +
+          ">>> \\char update <CHARACTER NAME>\n" +
+          " \\\`\\\`\\\`\n" + 
+          RACE_COLUMN + ":\n" +
+          SUBRACE_COLUMN + ":\n" + 
+          GENDER_COLUMN + ":\n" + 
+          CLASS_COLUMN + ":\n" + 
+          STATUS_COLUMN + ":\n" + 
+          NATIVE_COLUMN + ":\n" + 
+          REGION_COLUMN + ":\n" + 
+          VAULT_COLUMN + ":\n" + 
+          BACKGROUND_COLUMN + ":\n" + 
+          ALIGNMENT_COLUMN + ":\n" + 
+          BACKSTORY_COLUMN + ":\n" + 
+          IMAGE_COLUMN + ":\n" + 
+          "\\\`\\\`\\\`"
+        );
+      }
+
+      sheetOp.getSheet(CHARACTERS_SHEET)
+        .then((table) => {
+          let requests = [];
+          sheetOp.updateRowOnSheet(table, requests, CHARACTERS_SHEET_ID, location, updates, message);
+          sheetOp.sendRequests(requests, message);
+        });
+      return resolve('Character Updated!');
     });
   }
 

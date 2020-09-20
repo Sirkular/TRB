@@ -95,27 +95,91 @@ module.exports = function() {
   }
 
   /**
-  * Adds a row of data to specified sheet and row location.
-  * @param {Array} sheet - The sheet ID to add to
-  * @param {string} data - array of data needed to be added from left to right.
-  * @param {string} location - Row number needed to be added to. (0 for first row, 1 for last row)
+  * Compares multiple parameters to rows to find match andeturns index and array for first matched values.
+  * @param {2D Array} table - Table array to search.
+  * @param {Object} location - Object with key indicating column name and value to compare to for location placement.
   */
-  operations.addRowToSheet = function(sheet, sheetId, data, location, message, log) {
-    return operations.getSheet(sheet)
-      .then((table) => {
-        let req;
-        let requests = [];
+  operations.searchRowAndIndex = function(table, location) {
+    let row, data;
+    let columnHdr = table[0];
 
-        if (location == 0) {
-          req = utils.genInsertRowRequest(true, sheetId, 1, 2);
-          requests.push(req);
-          req = utils.genUpdateCellsRequest(data, sheetId, 1, 0);
-          requests.push(req); 
+    for (let i = 1; i < table.length; i++) {
+      let isRow = true;
+      for (let [key, value] of Object.entries(location)) {
+        if (table[i][columnHdr.indexOf(key)] != value) {
+          isRow = false;
         };
+      };
+      if (isRow) {
+        row = i;
+        data = table[i];
+        continue;
+      };
+    };
 
-        operations.sendRequests(requests, message, log);
-      });
+    return [row, data];
+  }
+
+  /**
+  * Adds a row of data to specified sheet and row location.
+  * @param {string} sheet - The sheet name to add to
+  * @param {string} sheetId - The sheet ID to add to
+  * @param {Array} data - array of data needed to be added from left to right.
+  * @param {integer} location - Row number needed to be added to. (0 for first row, 1 for last row)
+  * @param {Object} message - Discord message object
+  * @param {boolean} log - true if adding for logging purposes
+  */
+  operations.addRowToSheet = function(table, requests, sheetId, data, location, message, log) {
+    let req;
+
+    if (location == 0) {
+      req = utils.genInsertRowRequest(true, sheetId, 1, 2);
+      requests.push(req);
+      req = utils.genUpdateCellsRequest(data, sheetId, 1, 0);
+      requests.push(req);
+    }
+    else if (location == 1) {
+      req = utils.genInsertRowRequest(true, sheetId, table.length, table.length + 1);
+      requests.push(req);
+      req = utils.genUpdateCellsRequest(data, sheetId, table.length, 0);
+      requests.push(req);
+    }
+    else {
+      req = utils.genInsertRowRequest(true, sheetId, location, location + 1);
+      requests.push(req);
+      req = utils.genUpdateCellsRequest(data, sheetId, location, 0);
+      requests.push(req);
+    };
+
+    return requests;
   };
+
+  /**
+  * Update a row of data to specified sheet and comparable values.
+  * @param {string} sheet - The sheet name to add to
+  * @param {string} sheetId - The sheet ID to add to
+  * @param {Object} location - Object with key indicating column name and value to compare to for location placement.
+  * @param {Object} updates - Object with key indicating column name and value as value to update column to.
+  * @param {Object} message - Discord message object
+  */
+  operations.updateRowOnSheet = function(table, requests, sheetId, location, updates, message) {
+    let req;
+    let columnHdr = table[0];
+
+    let searchResult = operations.searchRowAndIndex(table, location);
+    let row = searchResult[0];
+    let data = searchResult[1];
+
+    for (let [key, value] of Object.entries(updates)) {
+      data[columnHdr.indexOf(key)] = value;
+    };
+
+    req = utils.genUpdateCellsRequest(data, sheetId, row, 0);
+    requests.push(req);
+
+    return requests;
+  };
+
 
   /**
   * Adds logging from a specific message.
@@ -123,7 +187,14 @@ module.exports = function() {
   */
   operations.addLogs = function(message) {
     var today = new Date();
-    operations.addRowToSheet(LOGS_SHEET, LOGS_SHEET_ID, [message.author.id, message.author.username, today.toUTCString(), message.content], 0, message, true);
+    let requests = [];
+    operations.getSheet(LOGS_SHEET)
+      .then((table) => {
+
+      operations.addRowToSheet(table, requests, LOGS_SHEET_ID, [message.author.id, message.author.username, today.toUTCString(), message.content],
+        0, message, true);
+      operations.sendRequests(requests, message, true);
+    });
     return;
   }
 
