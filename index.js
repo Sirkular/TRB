@@ -178,7 +178,7 @@ client.on('message', async message => {
       commands.queryDowntime(message, ...args.slice(1)).then(sendToChannel);
     }
     else {
-      sendToChannel('Please provide one of the following: \`spend\` or \`query\`');
+      sendToChannel('Please provide one of the following: \`spend\` or \`check\`');
     }
   }
   else {
