@@ -39,6 +39,7 @@ module.exports = function() {
               return mxp <= th;
             })
           ) - 1;
+          if (level === -1) level = 0;
 
           let out = 'Level: ' + level + '\n';
           out += 'Current MXP: ' + mxp + '\n';
