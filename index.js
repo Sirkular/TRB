@@ -1,13 +1,20 @@
-DEV_MODE = true;
-SPREADSHEET_ID = '1cbxNvmAEqEGeHtaf09ZaWV3YF9Rmz2F6vayabfYWyf4';
-CHARACTERS_SHEET_ID = '0';
-PLAYERS_SHEET_ID = '1510652814';
-TIMELINE_SHEET_ID = '415116931';
-CHARACTERS_SHEET = 'Characters';
-PLAYERS_SHEET = 'Players';
-TIMELINE_SHEET = 'Timeline';
-
+// Load consts
+globe = {};
+globe.roles = {
+  GM: 'GM',
+  TRIAL_GM: 'Trial GM',
+};
+require('./branchConstants.js');
 if (!DEV_MODE) require('dotenv').config();
+
+/**
+* @param message - A Discord.js message object.
+* @param authorizedRoles - An array of enums from roles.
+*/
+globe.authorized = function(message, authorizedRoles) {
+  const authorRoles = message.member.roles.cache;
+  return !!authorRoles.find(role => authorizedRoles.includes(role.name));
+};
 
 ///////////////////////////////Discord Setup///////////////////////////////////
 
@@ -69,20 +76,120 @@ client.on('message', async message => {
   }
 
   /////////////////////////////////Commands////////////////////////////////////
+  function sendToChannel(output) {
+    message.channel.send(output);
+  }
+
   if(command === "ping") {
     const m = await message.channel.send("Ping?");
     m.edit(`Pong! Latency is ${m.createdTimestamp - message.createdTimestamp}ms. API Latency is ${Math.round(client.ping)}ms`);
   }
   else if (command === 'help') {
-    sendChunkedText(message, help.getHelp(args), true)
+    message.channel.send(help.getHelp(args));
   }
   else if (command === 'info') {
-    commands.getCharacterInfo(args).then((output) => {
-      message.channel.send(output);
-    });
+    if (args.length == 0) {
+      commands.getPlayerInfo(message, args).then(sendToChannel);
+    }
+    else if (message.mentions.users.first()) {
+      if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM])) {
+        commands.getPlayerInfo(message, args).then(sendToChannel);
+      }
+      else {
+        sendToChannel('Not authorized.');
+      }
+    }
+    else {
+      commands.getCharacterInfo(message, args).then(sendToChannel);
+    }
+  }
+  else if (command === 'char') {
+    if (args[0] === 'register') {
+      commands.registerCharacter(message, args).then(sendToChannel);
+    }
+    else if (args[0] === 'delete') {
+      if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM])) {
+        commands.deleteCharacter(message, args).then(sendToChannel);
+      }
+      else {
+        sendToChannel('Not authorized.');
+      }
+    }
+    else if (args[0] === 'list') {
+      commands.listCharacter(message, args).then(sendToChannel);
+    }
+  }
+  else if (command === 'add') {
+    if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM])) {
+      if (!args[0]) {
+        sendToChannel('No resource entered.');
+      }
+      else if (args[0] === 'trb') {
+        commands.registerPlayer(message, args).then((output) => {
+          commands.addValue(message, args).then(sendToChannel);
+        });
+      }
+      else {
+        commands.addValue(message, args).then(sendToChannel);
+      }
+    }
+    else
+      sendToChannel('Not authorized.');
+  }
+  else if (command === 'spend') {
+    if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM])) {
+      if (!args[0]) {
+        sendToChannel('No resource entered.');
+      }
+      else if (args[0] === 'trb') {
+        commands.registerPlayer(message, args).then((output) => {
+          args.splice(1, 0, 'spent');
+          commands.addValue(message, args).then(sendToChannel);
+        });
+      }
+      else {
+        sendToChannel('Invalid player resource provided.');
+      }
+    }
+    else
+      sendToChannel('Not authorized.');
+  }
+  else if (command === 'timeline') {
+    if (args[0] === 'advance') {
+      if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]))
+        commands.advanceTimeline(message, args.slice(1)).then(sendToChannel);
+      else
+        sendToChannel('Not authorized.');
+    }
+    else if (args[0] === 'setperiod') {
+      if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]))
+        commands.advanceTimeline(message, args.slice(1), true).then(sendToChannel);
+      else
+        sendToChannel('Not authorized.');
+    }
+    else if (args[0] === 'check') {
+      commands.queryTimeline(args.slice(1)).then(sendToChannel);
+    }
+    else {
+      sendToChannel('Please enter one of the following: \`advance\`, \`setperiod\`, or \`check\`');
+    }
+  }
+  else if (command === 'downtime') {
+    if (args[0] === 'spend') {
+      if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]))
+        commands.spendDowntime(message, args.slice(1)).then(sendToChannel);
+      else
+        sendToChannel('Not authorized.');
+    }
+    else if (args[0] === 'check') {
+      commands.queryDowntime(message, ...args.slice(1)).then(sendToChannel);
+    }
+    else {
+      sendToChannel('Please provide one of the following: \`spend\` or \`check\`');
+    }
   }
   else {
-    message.channel.send('Command not recognized.');
+    sendToChannel('Command not recognized.');
   }
 });
 

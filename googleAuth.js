@@ -27,13 +27,15 @@ module.exports = function() {
         if (err) getNewToken(oAuth2Client)
             .then((auth) => resolve(auth))
             .catch((err) => {});
-        var tokenObj = JSON.parse(token);
-        if (!DEV_MODE) {
-          tokenObj.access_token = process.env.ACCESS_TOKEN;
-          tokenObj.refresh_token = process.env.REFRESH_TOKEN;
+        else {
+          var tokenObj = JSON.parse(token);
+          if (!DEV_MODE) {
+            tokenObj.access_token = process.env.ACCESS_TOKEN;
+            tokenObj.refresh_token = process.env.REFRESH_TOKEN;
+          }
+          oAuth2Client.setCredentials(tokenObj);
+          resolve(oAuth2Client);
         }
-        oAuth2Client.setCredentials(tokenObj);
-        resolve(oAuth2Client);
       });
     });
   }
@@ -63,6 +65,7 @@ module.exports = function() {
           // Store relevant token info to env for later function executions
           if (!DEV_MODE) {
             process.env.ACCESS_TOKEN = token.access_token;
+            process.env.REFRESH_TOKEN = token.refresh_token;
             token.access_token = "";
             token.refresh_token = "";
           }
