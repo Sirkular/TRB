@@ -1,22 +1,11 @@
-DEV_MODE = true;
-SPREADSHEET_ID = '1cbxNvmAEqEGeHtaf09ZaWV3YF9Rmz2F6vayabfYWyf4';
-CHARACTERS_SHEET_ID = '0';
-PLAYERS_SHEET_ID = '1510652814';
-TIMELINE_SHEET_ID = '415116931';
-LOGS_SHEET_ID = '1031156454';
-CHARACTERS_SHEET = 'Characters';
-PLAYERS_SHEET = 'Players';
-TIMELINE_SHEET = 'Timeline';
-LOGS_SHEET = 'Logs'
-
-if (!DEV_MODE) require('dotenv').config();
-
+// Load consts
 globe = {};
-
 globe.roles = {
   GM: 'GM',
   TRIAL_GM: 'Trial GM',
 };
+require('./branchConstants.js');
+if (!DEV_MODE) require('dotenv').config();
 
 /**
 * @param message - A Discord.js message object.
@@ -142,6 +131,24 @@ client.on('message', async message => {
       }
       else {
         commands.addValue(message, args).then(sendToChannel);
+      }
+    }
+    else
+      sendToChannel('Not authorized.');
+  }
+  else if (command === 'spend') {
+    if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM])) {
+      if (!args[0]) {
+        sendToChannel('No resource entered.');
+      }
+      else if (args[0] === 'trb') {
+        commands.registerPlayer(message, args).then((output) => {
+          args.splice(1, 0, 'spent');
+          commands.addValue(message, args).then(sendToChannel);
+        });
+      }
+      else {
+        sendToChannel('Invalid player resource provided.');
       }
     }
     else

@@ -30,6 +30,12 @@ module.exports = function() {
           "trb": "Adds specified TRB for specific players.\n\`add trb <dm/player/special> <amount> <PLAYER TAG 1> <PLAYER TAG 2> ... \`\n**Note:** Must tag player not just their names."
         },
       },
+      "spend": {
+        "main": "Spends a resource for a player.",
+        "sub": {
+          "trb": "Spends trb for a player.\n\`spend trb <amount> <PLAYER TAG>\`"
+        }
+      },
       "timeline": {
         "main": "Command for adjusting character timelines.\n\`timeline <advance/setperiod/check>\`",
         "sub": {

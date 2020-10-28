@@ -259,6 +259,7 @@ module.exports = function() {
   }
 
   /**
+  * TODO: This needs to be refactored into addCharacterValue and addPlayerValue.
   * Add a numerical amount of a value to character(s)
   * args format: (valueName, amount, character prefixes...)
   */
@@ -275,6 +276,9 @@ module.exports = function() {
         if (!args[1]) resolve('TRB type not provided.');
         valueName = valueName + "_" + args[1].toUpperCase();
         amount = parseInt(args[2]);
+        if (valueName.toUpperCase() === 'SPENT') {
+          amount = -amount;
+        }
         args.slice(3).forEach((mention) => {
           characters.push(mention.match(/\d+/).toString());
         });
@@ -298,14 +302,18 @@ module.exports = function() {
         .then((table) => {
           const valueCol = table[HEADER_ROW].indexOf(valueName);
           let requests = [];
-          characters.forEach((character) => {
+          for (let i = 0; i < characters.length; i++) {
+            const character = characters[i];
             let charRow = sheetOp.getRowWithValue(table, columnId, character, true);
-            if (charRow === -1) resolve('One or more of the characters do not exist. No values were added.');
+            if (charRow === -1) {
+              resolve('One or more of the characters do not exist. No values were added.');
+              return;
+            }
             let curValue = table[charRow][valueCol] ? parseInt(table[charRow][valueCol]) : 0;
             let newValue = curValue + amount;
             let req = utils.genUpdateCellsRequest([newValue], sheetId, charRow, valueCol);
             requests.push(req);
-          });
+          };
           sheetOp.sendRequests(requests, message).then(() => {
             resolve('Successfully added values.');
           }).catch(() => {
@@ -314,6 +322,60 @@ module.exports = function() {
         }).catch((err) => {
           console.error('addValue error: ' + err);
           resolve('Error adding value to character(s).');
+        });
+    });
+  }
+
+  commands.addPlayerValue = function(message, args) {
+    return new Promise((resolve, reject) => {
+      let valueName = args[0].toUpperCase();
+      let amount = 0;
+      let players = [];
+
+      if (!args[1]) resolve('TRB type not provided.');
+      valueName = valueName + "_" + args[1].toUpperCase();
+      amount = parseInt(args[2]);
+      args.slice(3).forEach((mention) => {
+        players.push(mention.match(/\d+/).toString());
+      });
+      if (!valueName || isNaN(amount)) resolve('No resource name and/or amount was given.');
+      else if (!players.length) resolve('No players were mentioned.');
+
+      let sheetName = PLAYERS_SHEET;
+      let sheetId = PLAYERS_SHEET_ID;
+      let columnId = ID_COLUMN;
+      sheetOp.getSheet(sheetName)
+        .then((table) => {
+          const valueCol = table[HEADER_ROW].indexOf(valueName);
+          let requests = [];
+          for (player of players) {
+            let playerRow = sheetOp.getRowWithValue(table, columnId, player, true);
+            // if (playerRow === -1) // Can never be true, since we register players before this.
+            let curValue = table[playerRow][valueCol] ? parseInt(table[playerRow][valueCol]) : 0;
+            let newValue = curValue + amount;
+            if (valueName === 'TRB_SPENT') {
+              let lifetimeTrb = parseInt(sheetOp.getValue(table, ID_COLUMN, player, 'TRB_DM'))
+                + parseInt(sheetOp.getValue(table, ID_COLUMN, player, 'TRB_PLAYER'))
+                + parseInt(sheetOp.getValue(table, ID_COLUMN, player, 'TRB_SPECIAL'));
+              let availableTrb = lifetimeTrb
+                - parseInt(sheetOp.getValue(table, ID_COLUMN, player, 'TRB_SPENT'))
+                - parseInt(sheetOp.getValue(table, ID_COLUMN, player, 'TRB_LOST'));
+              if (availableTrb - amount < 0) {
+                resolve('You do not have enough TRB for this expenditure.');
+                return;
+              }
+            }
+            let req = utils.genUpdateCellsRequest([newValue], sheetId, playerRow, valueCol);
+            requests.push(req);
+          };
+          sheetOp.sendRequests(requests, message).then(() => {
+            resolve('Successfully modified values.');
+          }).catch(() => {
+            resolve('Error modifying values.');
+          });
+        }).catch((err) => {
+          console.error('addPlayerValue error: ' + err);
+          resolve('Error modifying values.');
         });
     });
   }
