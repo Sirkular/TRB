@@ -90,7 +90,7 @@ module.exports = function() {
 
   operations.authorizedCharacter = function(table, message, char) {
     const playerId = message.member.user.id;
-    const charPlayerId = operations.getValue(table, ID_COLUMN, char, CHAR_COLUMN, true);
+    const charPlayerId = operations.getValue(table, CHAR_COLUMN, char, ID_COLUMN, true);
     return parseInt(playerId) === parseInt(charPlayerId);
   }
 
@@ -110,7 +110,7 @@ module.exports = function() {
           req = utils.genInsertRowRequest(true, sheetId, 1, 2);
           requests.push(req);
           req = utils.genUpdateCellsRequest(data, sheetId, 1, 0);
-          requests.push(req); 
+          requests.push(req);
         };
 
         operations.sendRequests(requests, message, log);
