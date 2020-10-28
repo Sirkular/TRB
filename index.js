@@ -4,8 +4,8 @@ globe.roles = {
   GM: 'GM',
   TRIAL_GM: 'Trial GM',
 };
+require('dotenv').config();
 require('./branchConstants.js');
-if (!DEV_MODE) require('dotenv').config();
 
 /**
 * @param message - A Discord.js message object.
