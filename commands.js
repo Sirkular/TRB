@@ -203,16 +203,21 @@ module.exports = function() {
   commands.deleteCharacter = function(message, args) {
     return new Promise((resolve, reject) => {
       let charName = args.slice(1).join(' ');
-      let playerId = message.member.user.id;
-      let playerName = message.member.user.tag;
-      sheetOp.getSheet(CHARACTERS_SHEET)
-        .then((table) => {
-          let idRowIdx = table[HEADER_ROW].indexOf(ID_COLUMN);
-          let charNameRowIdx = table[HEADER_ROW].indexOf(CHAR_COLUMN);
+      Promise.all([sheetOp.getSheet(CHARACTERS_SHEET), sheetOp.getSheet(TIMELINE_SHEET)])
+        .then(([charTable, timelineTable]) => {
+          let charNameRowIdx = charTable[HEADER_ROW].indexOf(CHAR_COLUMN);
           let requests = [];
-          for (i = 1; i < table.length; i++) {
-            if (table[i][idRowIdx] === playerId && table[i][charNameRowIdx] === charName) {
+          for (let i = 1; i < charTable.length; i++) {
+            if (charTable[i][charNameRowIdx] === charName) {
               let req = utils.genDeleteRowRequest(CHARACTERS_SHEET_ID, i, i + 1);
+              requests.push(req);
+              break;
+            };
+          };
+          charNameRowIdx = timelineTable[HEADER_ROW].indexOf(CHAR_COLUMN);
+          for (let i = 1; i < timelineTable.length; i++) {
+            if (timelineTable[i][charNameRowIdx] === charName) {
+              let req = utils.genDeleteRowRequest(TIMELINE_SHEET_ID, i, i + 1);
               requests.push(req);
               break;
             };
@@ -220,7 +225,7 @@ module.exports = function() {
 
           // No rows found with matching discord id and character name
           if (requests.length === 0) {
-            resolve('No character exists for ' + message.member.user.toString() + ' named: ' + charName);
+            resolve('No character exists named: ' + charName);
           }
           else {
             sheetOp.sendRequests(requests, message).then(() => {
@@ -228,7 +233,7 @@ module.exports = function() {
             }).catch(() => {
               resolve('Error deleting character.');
             });
-            resolve('Deleted ' + charName + ' for ' + message.member.user.toString() + '.')
+            resolve('Deleted ' + charName + '.'); // TODO: retrieve player's ID and convert to tag for display here
           }
         }).catch((err) => {console.log('deleteCharacter error: ' + err)});
     });
