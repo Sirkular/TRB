@@ -241,7 +241,7 @@ module.exports = function() {
 
   commands.listCharacter = function(message, args) {
     return new Promise((resolve, reject) => {
-      let playerId = message.member.user.id;
+      let playerId = message.mentions.members.first() || message.member.user.id;
       let playerName = message.member.user.tag;
       let charList = [];
       sheetOp.getSheet(CHARACTERS_SHEET)
@@ -255,10 +255,10 @@ module.exports = function() {
           };
 
           if (charList.length === 0) {
-            resolve(message.member.user.toString() + ' has no characters registered yet!');
+            resolve(playerId.toString() + ' has no characters registered yet!');
           };
 
-          resolve('Registered characters for ' + message.member.user.toString() + ': ' + charList.join(', '));
+          resolve('Registered characters for ' + playerId.toString() + ': ' + charList.join(', '));
         }).catch((err) => {console.log('listCharacter error: ' + err)});
     });
   }

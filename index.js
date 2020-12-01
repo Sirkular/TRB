@@ -116,7 +116,11 @@ client.on('message', async message => {
       }
     }
     else if (args[0] === 'list') {
-      commands.listCharacter(message, args).then(sendToChannel);
+      if (message.mentions.members.first() &&
+          !globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM])) {
+        sendToChannel('Not authorized to get the data of others.');
+      }
+      else commands.listCharacter(message, args).then(sendToChannel);
     }
   }
   else if (command === 'add') {
