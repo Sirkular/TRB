@@ -73,10 +73,9 @@ module.exports = function() {
           };
 
           embed.addFields(fields);
-          if (data[columnHdr.indexOf(IMAGE_COLUMN)]) {
+          if (data[columnHdr.indexOf(IMAGE_COLUMN)] != 0) {
             embed.setImage(data[columnHdr.indexOf(IMAGE_COLUMN)]);
           };
-
           resolve({embed});
         }).catch((err) => {console.log('getCharacterInfo error: ' + err)});
     });
@@ -236,16 +235,21 @@ module.exports = function() {
   commands.deleteCharacter = function(message, args) {
     return new Promise((resolve, reject) => {
       let charName = args.slice(1).join(' ');
-      let playerId = message.member.user.id;
-      let playerName = message.member.user.tag;
-      sheetOp.getSheet(CHARACTERS_SHEET)
-        .then((table) => {
-          let idRowIdx = table[HEADER_ROW].indexOf(ID_COLUMN);
-          let charNameRowIdx = table[HEADER_ROW].indexOf(CHAR_COLUMN);
+      Promise.all([sheetOp.getSheet(CHARACTERS_SHEET), sheetOp.getSheet(TIMELINE_SHEET)])
+        .then(([charTable, timelineTable]) => {
+          let charNameRowIdx = charTable[HEADER_ROW].indexOf(CHAR_COLUMN);
           let requests = [];
-          for (i = 1; i < table.length; i++) {
-            if (table[i][idRowIdx] === playerId && table[i][charNameRowIdx] === charName) {
+          for (let i = 1; i < charTable.length; i++) {
+            if (charTable[i][charNameRowIdx] === charName) {
               let req = utils.genDeleteRowRequest(CHARACTERS_SHEET_ID, i, i + 1);
+              requests.push(req);
+              break;
+            };
+          };
+          charNameRowIdx = timelineTable[HEADER_ROW].indexOf(CHAR_COLUMN);
+          for (let i = 1; i < timelineTable.length; i++) {
+            if (timelineTable[i][charNameRowIdx] === charName) {
+              let req = utils.genDeleteRowRequest(TIMELINE_SHEET_ID, i, i + 1);
               requests.push(req);
               break;
             };
@@ -253,7 +257,7 @@ module.exports = function() {
 
           // No rows found with matching discord id and character name
           if (requests.length === 0) {
-            resolve('No character exists for ' + message.member.user.toString() + ' named: ' + charName);
+            resolve('No character exists named: ' + charName);
           }
           else {
             sheetOp.sendRequests(requests, message).then(() => {
@@ -261,7 +265,7 @@ module.exports = function() {
             }).catch(() => {
               resolve('Error deleting character.');
             });
-            resolve('Deleted ' + charName + ' for ' + message.member.user.toString() + '.')
+            resolve('Deleted ' + charName + '.'); // TODO: retrieve player's ID and convert to tag for display here
           }
         }).catch((err) => {console.log('deleteCharacter error: ' + err)});
     });
@@ -269,7 +273,7 @@ module.exports = function() {
 
   commands.listCharacter = function(message, args) {
     return new Promise((resolve, reject) => {
-      let playerId = message.member.user.id;
+      let playerId = message.mentions.members.first() || message.member.user.id;
       let playerName = message.member.user.tag;
       let charList = [];
       sheetOp.getSheet(CHARACTERS_SHEET)
@@ -283,10 +287,10 @@ module.exports = function() {
           };
 
           if (charList.length === 0) {
-            resolve(message.member.user.toString() + ' has no characters registered yet!');
+            resolve(playerId.toString() + ' has no characters registered yet!');
           };
 
-          resolve('Registered characters for ' + message.member.user.toString() + ': ' + charList.join(', '));
+          resolve('Registered characters for ' + playerId.toString() + ': ' + charList.join(', '));
         }).catch((err) => {console.log('listCharacter error: ' + err)});
     });
   }
@@ -348,6 +352,7 @@ module.exports = function() {
   }
 
   /**
+  * TODO: This needs to be refactored into addCharacterValue and addPlayerValue.
   * Add a numerical amount of a value to character(s)
   * args format: (valueName, amount, character prefixes...)
   */
@@ -364,6 +369,9 @@ module.exports = function() {
         if (!args[1]) resolve('TRB type not provided.');
         valueName = valueName + "_" + args[1].toUpperCase();
         amount = parseInt(args[2]);
+        if (valueName.toUpperCase() === 'SPENT') {
+          amount = -amount;
+        }
         args.slice(3).forEach((mention) => {
           characters.push(mention.match(/\d+/).toString());
         });
@@ -387,14 +395,18 @@ module.exports = function() {
         .then((table) => {
           const valueCol = table[HEADER_ROW].indexOf(valueName);
           let requests = [];
-          characters.forEach((character) => {
+          for (let i = 0; i < characters.length; i++) {
+            const character = characters[i];
             let charRow = sheetOp.getRowWithValue(table, columnId, character, true);
-            if (charRow === -1) resolve('One or more of the characters do not exist. No values were added.');
+            if (charRow === -1) {
+              resolve('One or more of the characters do not exist. No values were added.');
+              return;
+            }
             let curValue = table[charRow][valueCol] ? parseInt(table[charRow][valueCol]) : 0;
             let newValue = curValue + amount;
             let req = utils.genUpdateCellsRequest([newValue], sheetId, charRow, valueCol);
             requests.push(req);
-          });
+          };
           sheetOp.sendRequests(requests, message).then(() => {
             resolve('Successfully added values.');
           }).catch(() => {
@@ -403,6 +415,60 @@ module.exports = function() {
         }).catch((err) => {
           console.error('addValue error: ' + err);
           resolve('Error adding value to character(s).');
+        });
+    });
+  }
+
+  commands.addPlayerValue = function(message, args) {
+    return new Promise((resolve, reject) => {
+      let valueName = args[0].toUpperCase();
+      let amount = 0;
+      let players = [];
+
+      if (!args[1]) resolve('TRB type not provided.');
+      valueName = valueName + "_" + args[1].toUpperCase();
+      amount = parseInt(args[2]);
+      args.slice(3).forEach((mention) => {
+        players.push(mention.match(/\d+/).toString());
+      });
+      if (!valueName || isNaN(amount)) resolve('No resource name and/or amount was given.');
+      else if (!players.length) resolve('No players were mentioned.');
+
+      let sheetName = PLAYERS_SHEET;
+      let sheetId = PLAYERS_SHEET_ID;
+      let columnId = ID_COLUMN;
+      sheetOp.getSheet(sheetName)
+        .then((table) => {
+          const valueCol = table[HEADER_ROW].indexOf(valueName);
+          let requests = [];
+          for (player of players) {
+            let playerRow = sheetOp.getRowWithValue(table, columnId, player, true);
+            // if (playerRow === -1) // Can never be true, since we register players before this.
+            let curValue = table[playerRow][valueCol] ? parseInt(table[playerRow][valueCol]) : 0;
+            let newValue = curValue + amount;
+            if (valueName === 'TRB_SPENT') {
+              let lifetimeTrb = parseInt(sheetOp.getValue(table, ID_COLUMN, player, 'TRB_DM'))
+                + parseInt(sheetOp.getValue(table, ID_COLUMN, player, 'TRB_PLAYER'))
+                + parseInt(sheetOp.getValue(table, ID_COLUMN, player, 'TRB_SPECIAL'));
+              let availableTrb = lifetimeTrb
+                - parseInt(sheetOp.getValue(table, ID_COLUMN, player, 'TRB_SPENT'))
+                - parseInt(sheetOp.getValue(table, ID_COLUMN, player, 'TRB_LOST'));
+              if (availableTrb - amount < 0) {
+                resolve('You do not have enough TRB for this expenditure.');
+                return;
+              }
+            }
+            let req = utils.genUpdateCellsRequest([newValue], sheetId, playerRow, valueCol);
+            requests.push(req);
+          };
+          sheetOp.sendRequests(requests, message).then(() => {
+            resolve('Successfully modified values.');
+          }).catch(() => {
+            resolve('Error modifying values.');
+          });
+        }).catch((err) => {
+          console.error('addPlayerValue error: ' + err);
+          resolve('Error modifying values.');
         });
     });
   }

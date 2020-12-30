@@ -18,7 +18,7 @@ module.exports = function() {
         "sub": {
           "register": "Registers character into tracker.\n\`char register <FULL CHARACTER NAME>\`",
           "delete": "Deletes registered character from tracker permanently.\n\`char delete <CHARACTER NAME> \`\n**Note:** Character name with no spaces. Just first prefix OK.'",
-          "list": "List registered characters in tracker for player.\n\`char list\`",
+          "list": "List registered characters in tracker for player.\n\`char list <OPTIONAL_MENTION>\`",
           "update": "Updates basic character information.\n\`char update <CHARACTER NAME> <CATEGORY> <VALUE>\`"
         },
       },
@@ -31,25 +31,31 @@ module.exports = function() {
           "trb": "Adds specified TRB for specific players.\n\`add trb <dm/player/special> <amount> <PLAYER TAG 1> <PLAYER TAG 2> ... \`\n**Note:** Must tag player not just their names."
         },
       },
-      "timeline": {
-        "main": "Command for adjusting character timelines.\n\`timeline <advance/setperiod/query>\`",
+      "spend": {
+        "main": "Spends a resource for a player.",
         "sub": {
-          "advance": "Finds the character farthest in the future out of all characters provided " + 
+          "trb": "Spends trb for a player.\n\`spend trb <amount> <PLAYER TAG>\`"
+        }
+      },
+      "timeline": {
+        "main": "Command for adjusting character timelines.\n\`timeline <advance/setperiod/check>\`",
+        "sub": {
+          "advance": "Finds the character farthest in the future out of all characters provided " +
                      "and syncs the other characters' timeline to the farthest by filling in the disparity with downtime, " +
-                     "then advances their timeline by <DAYS> days with <ACTIVITY>.\n" + 
+                     "then advances their timeline by <DAYS> days with <ACTIVITY>.\n" +
                      "\`timeline advance <CHARACTER NAME 1> <CHARACTER NAME 2> ... <DAYS> <ACTIVITY>\`",
           "setperiod": "Syncs all characters' timeline to <STARTING DAY> by filling in the disparity with downtime, then advances their timeline by <DAYS> days with <ACTIVITY>.\n" +
                        "\`timeline setperiod <CHARACTER NAME 1> <CHARACTER NAME 2> ... <STARTING DAY> <DAYS> <ACTIVITY>\`",
-          "query": "Outputs what activity the character is partaking in on <DAY>.\n\`timeline query <CHARACTER NAME> <DAY>\`",
+          "check": "Outputs what activity the character is partaking in on <DAY>.\n\`timeline check <CHARACTER NAME> <DAY>\`",
         },
       },
       "downtime": {
-        "main": "Allows players to use and look at their downtime.\n\`downtime <spend/query>\`",
+        "main": "Allows players to use and look at their downtime.\n\`downtime <spend/check>\`",
         "sub": {
-          "spend": "Spends <DAYS> of a character\'s downtime days doing <ACTIVITY>. Is retroactively applied.\n" + 
+          "spend": "Spends <DAYS> of a character\'s downtime days doing <ACTIVITY>. Is retroactively applied.\n" +
                    "\`downtime spend <CHARACTER NAME> <DAYS> <ACTIVITY>\`",
-          "query": "Outputs how many downtime days a character has. If <DAY> is specified, outputs how many downtime days a character has up to that day, excluding the day itself.\n" +
-                   "\`downtime query <CHARACTER NAME> <DAY>\`",
+          "check": "Outputs how many downtime days a character has. If <DAY> is specified, outputs how many downtime days a character has up to that day, excluding the day itself.\n" +
+                   "\`downtime check <CHARACTER NAME> <DAY>\`",
         },
       },
     },
@@ -70,7 +76,7 @@ module.exports = function() {
           for (command in help_commands[category]) {
             if (command == command_arg) {
               let embed = utils.constructEmbed(command_arg.charAt(0).toUpperCase() + command_arg.slice(1) + " Help", help_commands[category][command]["main"]);
-              
+
               let fields = [];
               let desc = "";
               for (var sub_command in help_commands[category][command]["sub"]) {

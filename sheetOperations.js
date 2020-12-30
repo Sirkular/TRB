@@ -90,7 +90,7 @@ module.exports = function() {
 
   operations.authorizedCharacter = function(table, message, char) {
     const playerId = message.member.user.id;
-    const charPlayerId = operations.getValue(table, ID_COLUMN, char, CHAR_COLUMN, true);
+    const charPlayerId = operations.getValue(table, CHAR_COLUMN, char, ID_COLUMN, true);
     return parseInt(playerId) === parseInt(charPlayerId);
   }
 
