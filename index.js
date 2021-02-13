@@ -3,6 +3,14 @@ globe = {};
 globe.roles = {
   GM: 'GM',
   TRIAL_GM: 'Trial GM',
+  SOLDIER: 'Soldier',
+  KING: 'King',
+  DEMON: 'Demon',
+  DEMON_DADDY: 'Demon Daddy',
+  GM_COACH: 'GM Coach',
+  MODERATOR: 'Moderator',
+  RULES_TEAM: 'Rules Team',
+  TECH_TEAM: 'Tech Team',
 };
 require('dotenv').config();
 require('./branchConstants.js');
