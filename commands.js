@@ -356,41 +356,18 @@ module.exports = function() {
   * Add a numerical amount of a value to character(s)
   * args format: (valueName, amount, character prefixes...)
   */
-  commands.addValue = function(message, args) {
+  commands.addCharacterValue = function(message, args) {
     return new Promise((resolve, reject) => {
       let valueName = args[0].toUpperCase();
-      if (!(valueName === 'MXP' || valueName === 'TRB')) resolve('Invalid resource.');
       let amount = 0;
       let characters = [];
-      if (!isNaN(args[1])) {
-        amount = parseInt(args[1]);
-        characters = args.slice(2);
-      } else {
-        if (!args[1]) resolve('TRB type not provided.');
-        valueName = valueName + "_" + args[1].toUpperCase();
-        amount = parseInt(args[2]);
-        if (valueName.toUpperCase() === 'SPENT') {
-          amount = -amount;
-        }
-        args.slice(3).forEach((mention) => {
-          characters.push(mention.match(/\d+/).toString());
-        });
-      }
+      amount = parseInt(args[1]);
+      characters = args.slice(2);
       if (!(valueName && amount)) resolve('No resource name and/or amount was given.');
       else if (!characters.length) resolve('No character names or prefixes were given.');
-      let sheetName = "";
-      let sheetId = "";
-      let columnId = 0;
-      if (valueName === 'MXP') {
-        sheetName = CHARACTERS_SHEET;
-        sheetId = CHARACTERS_SHEET_ID;
-        columnId = CHAR_COLUMN;
-      }
-      else {
-        sheetName = PLAYERS_SHEET;
-        sheetId = PLAYERS_SHEET_ID;
-        columnId = ID_COLUMN;
-      }
+      let sheetName = CHARACTERS_SHEET;
+      let sheetId = CHARACTERS_SHEET_ID;
+      let columnId = CHAR_COLUMN;
       sheetOp.getSheet(sheetName)
         .then((table) => {
           const valueCol = table[HEADER_ROW].indexOf(valueName);
@@ -419,15 +396,43 @@ module.exports = function() {
     });
   }
 
-  commands.addPlayerValue = function(message, args) {
+  commands.addPlayerValue = function(message, players, valueName, amount) {
+    return new Promise((resolve, reject) => {
+      sheetOp.getSheet(PLAYERS_SHEET)
+        .then((table) => {
+          const valueCol = table[HEADER_ROW].indexOf(valueName);
+          let requests = [];
+          for (player of players) {
+            let playerRow = sheetOp.getRowWithValue(table, ID_COLUMN, player, true);
+            let curValue = table[playerRow][valueCol] ? parseInt(table[playerRow][valueCol]) : 0;
+            let newValue = curValue + amount;
+            let req = utils.genUpdateCellsRequest([newValue], PLAYERS_SHEET_ID, playerRow, valueCol);
+            requests.push(req);
+          };
+          sheetOp.sendRequests(requests, message).then(() => {
+            resolve('Successfully modified values.');
+          }).catch(() => {
+            resolve('Error modifying values.');
+          });
+        }).catch((err) => {
+          console.error('addPlayerValue error: ' + err);
+          resolve('Error modifying values.');
+        });
+    });
+  }
+
+  commands.addTRB = function(message, args) {
     return new Promise((resolve, reject) => {
       let valueName = args[0].toUpperCase();
       let amount = 0;
       let players = [];
 
       if (!args[1]) resolve('TRB type not provided.');
-      valueName = valueName + "_" + args[1].toUpperCase();
       amount = parseInt(args[2]);
+      if (valueName.toUpperCase() === 'SPENT') {
+        amount = -amount;
+      }
+      valueName = valueName + "_" + args[1].toUpperCase();
       args.slice(3).forEach((mention) => {
         players.push(mention.match(/\d+/).toString());
       });
