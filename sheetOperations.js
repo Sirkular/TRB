@@ -155,7 +155,7 @@ module.exports = function() {
   };
 
   /**
-  * Update a row of data to specified sheet and comparable values.
+  * Adds to request an entire row's worth of updates according to 'update' object.
   * @param {string} sheet - The sheet name to add to
   * @param {string} sheetId - The sheet ID to add to
   * @param {Object} location - Object with key indicating column name and value to compare to for location placement.
@@ -167,8 +167,18 @@ module.exports = function() {
     let columnHdr = table[0];
 
     let searchResult = operations.searchRowAndIndex(table, location);
+
+    if (!searchResult) {
+      requests = null;
+      return requests;
+    }
+
     let row = searchResult[0];
     let data = searchResult[1];
+
+    if (typeof data == 'undefined') {
+      return null;
+    };
 
     for (let [key, value] of Object.entries(updates)) {
       data[columnHdr.indexOf(key)] = value;

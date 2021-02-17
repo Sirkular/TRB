@@ -138,7 +138,7 @@ module.exports = function() {
 
           // Construct description
           let serverStaff = false;
-          let notable_roles = [globe.roles.DEMON_DADDY, globe.roles.GM, globe.roles.Trial_GM, globe.roles.GM_COACH, globe.roles.MODERATOR, globe.roles.RULES_TEAM,
+          let notable_roles = [globe.roles.DEMON_DADDY, globe.roles.GM, globe.roles.TRIAL_GM, globe.roles.GM_COACH, globe.roles.MODERATOR, globe.roles.RULES_TEAM,
             globe.roles.TECH_TEAM, globe.roles.KING, globe.roles.DEMON, globe.roles.SOLDIER]
           let desc = '';
           for (i = 0; i < notable_roles.length; i++) {
@@ -185,28 +185,6 @@ module.exports = function() {
               inline: true,
             });
           };
-
-          let charList;
-          let charArray = [];
-          let idRowIdx = characterTable[HEADER_ROW].indexOf(ID_COLUMN);
-          let charNameRowIdx = characterTable[HEADER_ROW].indexOf(CHAR_COLUMN);
-          for (i = 1; i < characterTable.length; i++) {
-            if (characterTable[i][idRowIdx] === playerId) {
-              charArray.push(characterTable[i][charNameRowIdx]);
-            };
-          };
-
-          if (charArray.length == 0) {
-            charList = 'No characters registered yet!';
-          } else {
-            charList = charArray.join(', ');
-          };
-
-          fields.push({
-            name: 'Characters',
-            value: charList,
-            inline: true,
-          });
 
           embed.addFields(fields);
           if (patreon == 'Soldier') {
@@ -462,10 +440,21 @@ module.exports = function() {
       sheetOp.getSheet(CHARACTERS_SHEET)
         .then((table) => {
           let requests = [];
-          sheetOp.updateRowOnSheet(table, requests, CHARACTERS_SHEET_ID, location, updates, message);
-          sheetOp.sendRequests(requests, message);
+          requests = sheetOp.updateRowOnSheet(table, requests, CHARACTERS_SHEET_ID, location, updates, message);
+
+          if (requests == null) {
+            return resolve('Need to specify valid character name you own for update.');
+          }
+
+          sheetOp.sendRequests(requests, message).then(() => {
+            resolve('Character Updated!');
+          }).catch(() => {
+            resolve('Error when updating character values.');
+          });
+        }).catch((err) => {
+          console.error('updateCharacter error: ' + err);
+          resolve('Error accessing gSheets.');
         });
-      return resolve('Character Updated!');
     });
   }
 
