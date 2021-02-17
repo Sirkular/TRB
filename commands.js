@@ -68,7 +68,7 @@ module.exports = function() {
           let mxp = data[columnHdr.indexOf(MXP_COLUMN)];
           let heroPoints = data[columnHdr.indexOf(HERO_POINTS_COLUMN)];
           let inspiration = data[columnHdr.indexOf(INSPIRATION_COLUMN)];
-          let level = MXP_THRESHOLDS.indexOf(MXP_THRESHOLDS.find((th) => {return mxp <= th;}));
+          let level = MXP_THRESHOLDS.indexOf(MXP_THRESHOLDS.find((th) => {return mxp < th;})) - 1;
           let embed = utils.constructEmbed(charName, "Level: " + level + ". MXP: " + mxp +
               ". MXP to next level: " + (MXP_THRESHOLDS[level + 1] - mxp) + 
               ".\nHero Points: " + heroPoints + "Inspiration: " + inspiration + ".");
