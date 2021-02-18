@@ -429,7 +429,7 @@ module.exports = function() {
         let updateArgs = args.slice(2).join(' ').split('\n');
         for (i = 0; i < updateArgs.length; i++) {
           let updateArg = updateArgs[i].split(':');
-          if (updateArg[1]) {
+          if (updateArg[1] && updatable.includes(updateArg[0])) {
             updates[updateArg[0]] = updateArg.slice(1).join(':').trim();
           };
         };
