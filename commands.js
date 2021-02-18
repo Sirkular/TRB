@@ -71,7 +71,7 @@ module.exports = function() {
           let level = MXP_THRESHOLDS.indexOf(MXP_THRESHOLDS.find((th) => {return mxp < th;})) - 1;
           let embed = utils.constructEmbed(charName, "Level: " + level + ". MXP: " + mxp +
               ". MXP to next level: " + (MXP_THRESHOLDS[level + 1] - mxp) + 
-              ".\nHero Points: " + heroPoints + "Inspiration: " + inspiration + ".");
+              ".\nHero Points: " + ((typeof heroPoints === 'undefined') ? 0 : heroPoints) + " Inspiration: " + ((typeof inspiration === 'undefined') ? 0 : inspiration) + ".");
 
           let fields = [];
           for (i = 0; i < info.length; i++) {
@@ -204,10 +204,23 @@ module.exports = function() {
   commands.registerCharacter = function(message, args) {
     return new Promise((resolve, reject) => {
       let charName = args.slice(1).join(' ');
+
+      if (charName == '') {
+        return resolve('No character name specified.');
+      } else if (/\s/.test(charName)) {
+        return resolve('Please do not register character names with spaces. Try using "_" or "-" in between for the purposes of the bot.')
+      }
+
       let playerId = message.member.user.id;
       let playerName = message.member.user.tag;
       Promise.all([sheetOp.getSheet(CHARACTERS_SHEET), sheetOp.getSheet(TIMELINE_SHEET)])
         .then(([charactersTable, timelineTable]) => {
+          // Checks if character name exists or is a prefix of another.
+          let charIdx = sheetOp.getRowWithValue(charactersTable, CHAR_COLUMN, charName, true)
+          if (charIdx != -1) {
+            throw new Error('Character name too identical to: ' + charactersTable[charIdx][charactersTable[HEADER_ROW].indexOf(CHAR_COLUMN)])
+          }
+
           let requests = [];
           requests = requests.concat(charactersRegistration(charactersTable));
           requests = requests.concat(timelineRegistration(timelineTable));
@@ -219,7 +232,11 @@ module.exports = function() {
         })
         .catch((err) => {
           console.log('registerCharacter error: ' + err);
-          resolve('Bot error: registering character failed.')
+          if (err.toString().startsWith('Error: Character name too')) {
+            resolve(err.toString());
+          } else {
+            resolve('Bot error: registering character failed.');
+          }
         });
 
 
