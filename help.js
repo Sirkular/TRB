@@ -19,6 +19,7 @@ module.exports = function() {
           "register": "Registers character into tracker.\n\`char register <FULL CHARACTER NAME>\`",
           "delete": "Deletes registered character from tracker permanently.\n\`char delete <CHARACTER NAME> \`\n**Note:** Character name with no spaces. Just first prefix OK.'",
           "list": "List registered characters in tracker for player.\n\`char list <OPTIONAL_MENTION>\`",
+          "update": "Updates basic character information.\n\`char update <CHARACTER NAME> <CATEGORY> <VALUE>\`"
         },
       },
     },

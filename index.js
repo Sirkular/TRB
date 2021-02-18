@@ -3,6 +3,14 @@ globe = {};
 globe.roles = {
   GM: 'GM',
   TRIAL_GM: 'Trial GM',
+  SOLDIER: 'Soldier',
+  KING: 'King',
+  DEMON: 'Demon',
+  DEMON_DADDY: 'Demon Daddy',
+  GM_COACH: 'GM Coach',
+  MODERATOR: 'Moderator',
+  RULES_TEAM: 'Rules Team',
+  TECH_TEAM: 'Tech Team',
 };
 require('dotenv').config();
 require('./branchConstants.js');
@@ -121,6 +129,9 @@ client.on('message', async message => {
         sendToChannel('Not authorized to get the data of others.');
       }
       else commands.listCharacter(message, args).then(sendToChannel);
+    }
+    else if (args[0] === 'update') {
+      commands.updateCharacter(message, args).then(sendToChannel);
     }
   }
   else if (command === 'add') {

@@ -7,11 +7,31 @@ module.exports = function() {
   ID_COLUMN = 'ID';
   CHAR_COLUMN = 'CHAR_NAME';
   MXP_COLUMN = 'MXP';
+  RACE_COLUMN = 'RACE';
+  SUBRACE_COLUMN = 'SUBRACE';
+  GENDER_COLUMN = 'GENDER';
+  CLASS_COLUMN = 'CLASS';
+  CUMULATIVE_LEVEL_COLUMN = 'CUMULATIVE_LEVEL'
+  STATUS_COLUMN = 'STATUS';
+  NATIVE_COLUMN = 'NATIVE';
+  REGION_COLUMN = 'REGION';
+  VAULT_COLUMN = 'VAULT';
+  BACKGROUND_COLUMN = 'BACKGROUND';
+  ALIGNMENT_COLUMN = 'ALIGNMENT';
+  BACKSTORY_COLUMN = 'BACKSTORY';
+  IMAGE_COLUMN = 'IMAGE';
+  HERO_POINTS_COLUMN = 'HERO_POINTS';
+  INSPIRATION_COLUMN = 'INSPIRATION';
+
+  PLAYER_ID_COLUMN = 'ID'
   TRB_DM_COLUMN = 'TRB_DM';
   TRB_PLAYER_COLUMN = 'TRB_PLAYER';
   TRB_SPECIAL_COLUMN = 'TRB_SPECIAL';
   TRB_SPENT_COLUMN = 'TRB_SPENT';
-  TRB_LOST_COLUMN = 'TRB_LOST;'
+  TRB_LOST_COLUMN = 'TRB_LOST';
+  TOKENS_COLUMN = 'TOKENS';
+  SCP_COLUMN = 'SESSION_CLAIM_POINTS'
+
   TIMELINE_START_COLUMN = 'TIMELINE_START';
   DEBUT_COLUMN = 'DEBUT';
   TIMELINE_ACTIVITY_PLACEHOLDER = '---';
@@ -24,6 +44,9 @@ module.exports = function() {
   MXP_THRESHOLDS.push(Number.MAX_SAFE_INTEGER);
 
   commands.getCharacterInfo = function(message, args) {
+    let info = [RACE_COLUMN, SUBRACE_COLUMN, GENDER_COLUMN, CLASS_COLUMN, STATUS_COLUMN, BACKGROUND_COLUMN, NATIVE_COLUMN, REGION_COLUMN, 
+      VAULT_COLUMN, ALIGNMENT_COLUMN, BACKSTORY_COLUMN];
+
     return new Promise((resolve, reject) => {
       let charName = args[0];
       if (!charName) resolve('No character name was given.')
@@ -32,43 +55,148 @@ module.exports = function() {
           if (!globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]) &&
               !sheetOp.authorizedCharacter(table, message, charName))
             resolve('Not authorized to get the data of this character.');
-          let mxp = parseInt(sheetOp.getValue(table, CHAR_COLUMN, charName, 'MXP', true));
-          if (isNaN(mxp)) resolve('No character by that name exists.');
-          let level = MXP_THRESHOLDS.indexOf(
-            MXP_THRESHOLDS.find((th) => {
-              return mxp <= th;
-            })
-          ) - 1;
-          if (level === -1) level = 0;
 
-          let out = 'Level: ' + level + '\n';
-          out += 'Current MXP: ' + mxp + '\n';
-          out += 'MXP to next level: ' + (MXP_THRESHOLDS[level + 1] - mxp) + '\n';
-          resolve(out);
+          let columnHdr = table[0];
+          let location = {};
+          // location[ID_COLUMN] = message.author.id;
+          location[CHAR_COLUMN] = charName;
+          let row = sheetOp.getRowWithValue(table, CHAR_COLUMN, charName, true);
+          if (row == -1) return resolve('Character does not exist!');
+
+          let data = table[row];
+
+          let mxp = data[columnHdr.indexOf(MXP_COLUMN)];
+          let heroPoints = data[columnHdr.indexOf(HERO_POINTS_COLUMN)];
+          let inspiration = data[columnHdr.indexOf(INSPIRATION_COLUMN)];
+          let level = MXP_THRESHOLDS.indexOf(MXP_THRESHOLDS.find((th) => {return mxp < th;})) - 1;
+          let embed = utils.constructEmbed(charName, "Level: " + level + ". MXP: " + mxp +
+              ". MXP to next level: " + (MXP_THRESHOLDS[level + 1] - mxp) + 
+              ".\nHero Points: " + heroPoints + "Inspiration: " + inspiration + ".");
+
+          let fields = [];
+          for (i = 0; i < info.length; i++) {
+            fields.push({
+              name: info[i],
+              value: (typeof data[columnHdr.indexOf(info[i])] === 'undefined') ? 'Not Set' : data[columnHdr.indexOf(info[i])],
+              inline: true,
+            });
+          };
+
+          embed.addFields(fields);
+          if (data[columnHdr.indexOf(IMAGE_COLUMN)] != 0) {
+            embed.setImage(data[columnHdr.indexOf(IMAGE_COLUMN)]);
+          };
+          resolve({embed});
         }).catch((err) => {console.log('getCharacterInfo error: ' + err)});
     });
   };
 
   commands.getPlayerInfo = function(message, args) {
+    let info = [TOKENS_COLUMN, SCP_COLUMN]
+    let info_names = ['Tokens', 'Session Claim Points']
+
     let playerId = message.member.user.id;
     if (message.mentions.users.first()) playerId = message.mentions.users.first().id;
     return new Promise((resolve, reject) => {
-      sheetOp.getSheet(PLAYERS_SHEET)
-        .then((playerTable) => {
-          let lifetimeTrb = parseInt(sheetOp.getValue(playerTable, ID_COLUMN, playerId, 'TRB_DM'))
-            + parseInt(sheetOp.getValue(playerTable, ID_COLUMN, playerId, 'TRB_PLAYER'))
-            + parseInt(sheetOp.getValue(playerTable, ID_COLUMN, playerId, 'TRB_SPECIAL'));
-          let availableTrb = lifetimeTrb
-            - parseInt(sheetOp.getValue(playerTable, ID_COLUMN, playerId, 'TRB_SPENT'))
-            - parseInt(sheetOp.getValue(playerTable, ID_COLUMN, playerId, 'TRB_LOST'));
+      Promise.all([sheetOp.getSheet(PLAYERS_SHEET), sheetOp.getSheet(CHARACTERS_SHEET)])
+        .then(([table, characterTable]) => {
+          if (!globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]) &&
+              playerId != message.member.user.id)
+            resolve('Not authorized to get the data of this player.');
 
-          if (isNaN(lifetimeTrb)) {
-            lifetimeTrb = 0;
-            availableTrb = 0;
+          let columnHdr = table[0];
+          let row = sheetOp.getRowWithValue(table, PLAYER_ID_COLUMN, playerId, true);
+          if (row == -1) return resolve('Player is not registered yet!');
+
+          let data = table[row];
+
+          let playerName;
+          let playerRoles = [];
+          if (playerId == message.member.user.id) {
+            playerName = message.member.user.username;
+            let roleCache = message.member.roles.cache.array();
+            for (i = 0; i < roleCache.length; i++) {
+              playerRoles.push(roleCache[i].name);
+            }
+          } else {
+            let user = message.mentions.members.array()[0];
+            playerName = user.user.username;
+            let roleCache = user.roles.cache.array();
+            for (i = 0; i < roleCache.length; i++) {
+              playerRoles.push(roleCache[i].name);
+            }
           }
-          let out = 'Available TRB: ' + availableTrb + '\n';
-          out += 'Lifetime TRB: ' + lifetimeTrb + '\n';
-          resolve(out);
+
+          let patreon = 'None'
+          if (playerRoles.includes(globe.roles.SOLDIER)) {
+            patreon = 'Soldier';
+          } else if (playerRoles.includes(globe.roles.KING)) {
+            patreon = 'King';
+          } else if (playerRoles.includes(globe.roles.DEMON)) {
+            patreon = 'Demon';
+          }
+
+          // Construct description
+          let serverStaff = false;
+          let notable_roles = [globe.roles.DEMON_DADDY, globe.roles.GM, globe.roles.TRIAL_GM, globe.roles.GM_COACH, globe.roles.MODERATOR, globe.roles.RULES_TEAM,
+            globe.roles.TECH_TEAM, globe.roles.KING, globe.roles.DEMON, globe.roles.SOLDIER]
+          let desc = '';
+          for (i = 0; i < notable_roles.length; i++) {
+            if (playerRoles.includes(notable_roles[i])) {
+              desc += notable_roles[i] + ', ';
+              serverStaff = true;
+            }
+          }
+
+          if (desc != '') {
+            desc = desc.substring(0, desc.length - 2);
+          }
+
+          let embed = utils.constructEmbed(playerName, desc);
+
+          let fields = [];
+
+          // Figure out Lifetime and Available TRB
+          let lifetimeTRB = parseInt(data[columnHdr.indexOf(TRB_DM_COLUMN)]) + parseInt(data[columnHdr.indexOf(TRB_PLAYER_COLUMN)]) + parseInt(data[columnHdr.indexOf(TRB_SPECIAL_COLUMN)])
+          let unavailableTRB = parseInt(data[columnHdr.indexOf(TRB_SPENT_COLUMN)]) + parseInt(data[columnHdr.indexOf(TRB_LOST_COLUMN)])
+          let availableTRB = lifetimeTRB - unavailableTRB
+
+          if (isNaN(availableTRB)) {
+            lifetimeTRB = 0;
+            availableTRB = 0;
+          }
+
+          fields.push({
+            name: 'Available TRB',
+            value: availableTRB,
+            inline: true,
+          });
+
+          fields.push({
+            name: 'Lifetime TRB',
+            value: lifetimeTRB,
+            inline: true,
+          });
+
+          for (i = 0; i < info.length; i++) {
+            fields.push({
+              name: info_names[i],
+              value: (typeof data[columnHdr.indexOf(info[i])] === 'undefined') ? 'Not Set' : data[columnHdr.indexOf(info[i])],
+              inline: true,
+            });
+          };
+
+          embed.addFields(fields);
+          if (patreon == 'Soldier') {
+            embed.setThumbnail('https://tinyurl.com/ybpq6peh');
+          } else if (patreon == 'King') {
+            embed.setThumbnail('https://tinyurl.com/4h7mg4yr');
+          } else if (patreon == 'Demon') {
+            embed.setThumbnail('https://tinyurl.com/19axxqt0');
+          } else if (serverStaff) {
+            embed.setThumbnail('https://tinyurl.com/33qhdupc');
+          }
+          resolve({embed});
         }).catch((err) => {console.log('getCharacterInfo error: ' + err)});
     });
   };
@@ -161,10 +289,10 @@ module.exports = function() {
           let idRowIdx = headerTags.indexOf(ID_COLUMN);
           let numNewPlayers = 0;
 
-          let playerList = args.slice(3);
+          let playerList = message.mentions.members.array();
           for (j = 0; j < playerList.length; j++) {
             let playerArr = [];
-            let playerId = playerList[j].slice(3, -1);
+            let playerId = playerList[j].user.id;
             let newPlayer = true;
             for (i = 0; i < table.length; i++) {
               if (table[i][idRowIdx] == playerId) {
@@ -260,6 +388,73 @@ module.exports = function() {
 
           resolve('Registered characters for ' + playerId.toString() + ': ' + charList.join(', '));
         }).catch((err) => {console.log('listCharacter error: ' + err)});
+    });
+  }
+
+  commands.updateCharacter = function(message, args) {
+    updatable = [RACE_COLUMN, SUBRACE_COLUMN, GENDER_COLUMN, CLASS_COLUMN, STATUS_COLUMN, NATIVE_COLUMN, REGION_COLUMN, VAULT_COLUMN, BACKGROUND_COLUMN, ALIGNMENT_COLUMN, BACKSTORY_COLUMN, IMAGE_COLUMN];
+    return new Promise((resolve, reject) => {
+      let location = {};
+      location[ID_COLUMN] = message.author.id;
+      if (!args[1]) resolve('Please specify which character you are updating!');
+      location[CHAR_COLUMN] = args[1];
+
+      let updates = {};
+      if (!args[2] && args[1] != 'help') {
+        return resolve('You need to specify what you want to update! You can choose from: Race, Subrace, Gender, Class, Status, Native, Region, Vault, Background, Alignment, Backstory, Image.\n' +
+            'You can also do \`\\char update help\` for more information');
+      }
+      else if (args[1] != 'help' && updatable.includes(args[2].toUpperCase())) {
+        updates[args[2].toUpperCase()] = args.slice(3).join(' ');
+      }
+      else if (args[1] != 'help' && args[2].includes('\n')) {
+        location[CHAR_COLUMN] = location[CHAR_COLUMN].replace('\n', '');
+        let updateArgs = args.slice(2).join(' ').split('\n');
+        for (i = 0; i < updateArgs.length; i++) {
+          let updateArg = updateArgs[i].split(':');
+          if (updateArg[1]) {
+            updates[updateArg[0]] = updateArg.slice(1).join(':').trim();
+          };
+        };
+      }
+      else {
+        return resolve("You can update the following individually by \`\\char update <CHARACTER NAME> <CATEGORY> <VALUE>\` or using the template: \n" +
+          ">>> \\char update <CHARACTER NAME>\n" +
+          " \\\`\\\`\\\`\n" + 
+          RACE_COLUMN + ":\n" +
+          SUBRACE_COLUMN + ":\n" + 
+          GENDER_COLUMN + ":\n" + 
+          CLASS_COLUMN + ":\n" + 
+          STATUS_COLUMN + ":\n" + 
+          NATIVE_COLUMN + ":\n" + 
+          REGION_COLUMN + ":\n" + 
+          VAULT_COLUMN + ":\n" + 
+          BACKGROUND_COLUMN + ":\n" + 
+          ALIGNMENT_COLUMN + ":\n" + 
+          BACKSTORY_COLUMN + ": (**Remember Discord has a 2000 character limit!**)\n" + 
+          IMAGE_COLUMN + ":\n" + 
+          "\\\`\\\`\\\`"
+        );
+      }
+
+      sheetOp.getSheet(CHARACTERS_SHEET)
+        .then((table) => {
+          let requests = [];
+          requests = sheetOp.updateRowOnSheet(table, requests, CHARACTERS_SHEET_ID, location, updates, message);
+
+          if (requests == null) {
+            return resolve('Need to specify valid character name you own for update.');
+          }
+
+          sheetOp.sendRequests(requests, message).then(() => {
+            resolve('Character Updated!');
+          }).catch(() => {
+            resolve('Error when updating character values.');
+          });
+        }).catch((err) => {
+          console.error('updateCharacter error: ' + err);
+          resolve('Error accessing gSheets.');
+        });
     });
   }
 
