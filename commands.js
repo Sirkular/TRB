@@ -44,7 +44,7 @@ module.exports = function() {
   MXP_THRESHOLDS.push(Number.MAX_SAFE_INTEGER);
 
   commands.getCharacterInfo = function(message, args) {
-    let info = [RACE_COLUMN, SUBRACE_COLUMN, GENDER_COLUMN, CLASS_COLUMN, STATUS_COLUMN, BACKGROUND_COLUMN, NATIVE_COLUMN, REGION_COLUMN, 
+    let info = [RACE_COLUMN, SUBRACE_COLUMN, GENDER_COLUMN, CLASS_COLUMN, STATUS_COLUMN, BACKGROUND_COLUMN, NATIVE_COLUMN, REGION_COLUMN,
       VAULT_COLUMN, ALIGNMENT_COLUMN, BACKSTORY_COLUMN];
 
     return new Promise((resolve, reject) => {
@@ -56,7 +56,7 @@ module.exports = function() {
               !sheetOp.authorizedCharacter(table, message, charName))
             resolve('Not authorized to get the data of this character.');
 
-          let columnHdr = table[0];
+          let columnHdr = table[HEADER_ROW];
           let location = {};
           // location[ID_COLUMN] = message.author.id;
           location[CHAR_COLUMN] = charName;
@@ -70,7 +70,7 @@ module.exports = function() {
           let inspiration = data[columnHdr.indexOf(INSPIRATION_COLUMN)];
           let level = MXP_THRESHOLDS.indexOf(MXP_THRESHOLDS.find((th) => {return mxp < th;})) - 1;
           let embed = utils.constructEmbed(charName, "Level: " + level + ". MXP: " + mxp +
-              ". MXP to next level: " + (MXP_THRESHOLDS[level + 1] - mxp) + 
+              ". MXP to next level: " + (MXP_THRESHOLDS[level + 1] - mxp) +
               ".\nHero Points: " + heroPoints + "Inspiration: " + inspiration + ".");
 
           let fields = [];
@@ -104,7 +104,7 @@ module.exports = function() {
               playerId != message.member.user.id)
             resolve('Not authorized to get the data of this player.');
 
-          let columnHdr = table[0];
+          let columnHdr = table[HEADER_ROW];
           let row = sheetOp.getRowWithValue(table, PLAYER_ID_COLUMN, playerId, true);
           if (row == -1) return resolve('Player is not registered yet!');
 
@@ -279,7 +279,7 @@ module.exports = function() {
     });
   }
 
-  commands.registerPlayer = function(message, args) {
+  commands.registerPlayer = function(message, args, players) {
     return new Promise((resolve, reject) => {
       let playerName = message.member.user.tag;
       sheetOp.getSheet(PLAYERS_SHEET)
@@ -289,10 +289,10 @@ module.exports = function() {
           let idRowIdx = headerTags.indexOf(ID_COLUMN);
           let numNewPlayers = 0;
 
-          let playerList = message.mentions.members.array();
+          let playerList = players || message.mentions.members.map(member => member.id);
           for (j = 0; j < playerList.length; j++) {
             let playerArr = [];
-            let playerId = playerList[j].user.id;
+            let playerId = playerList[j];
             let newPlayer = true;
             for (i = 0; i < table.length; i++) {
               if (table[i][idRowIdx] == playerId) {
@@ -420,19 +420,19 @@ module.exports = function() {
       else {
         return resolve("You can update the following individually by \`\\char update <CHARACTER NAME> <CATEGORY> <VALUE>\` or using the template: \n" +
           ">>> \\char update <CHARACTER NAME>\n" +
-          " \\\`\\\`\\\`\n" + 
+          " \\\`\\\`\\\`\n" +
           RACE_COLUMN + ":\n" +
-          SUBRACE_COLUMN + ":\n" + 
-          GENDER_COLUMN + ":\n" + 
-          CLASS_COLUMN + ":\n" + 
-          STATUS_COLUMN + ":\n" + 
-          NATIVE_COLUMN + ":\n" + 
-          REGION_COLUMN + ":\n" + 
-          VAULT_COLUMN + ":\n" + 
-          BACKGROUND_COLUMN + ":\n" + 
-          ALIGNMENT_COLUMN + ":\n" + 
-          BACKSTORY_COLUMN + ": (**Remember Discord has a 2000 character limit!**)\n" + 
-          IMAGE_COLUMN + ":\n" + 
+          SUBRACE_COLUMN + ":\n" +
+          GENDER_COLUMN + ":\n" +
+          CLASS_COLUMN + ":\n" +
+          STATUS_COLUMN + ":\n" +
+          NATIVE_COLUMN + ":\n" +
+          REGION_COLUMN + ":\n" +
+          VAULT_COLUMN + ":\n" +
+          BACKGROUND_COLUMN + ":\n" +
+          ALIGNMENT_COLUMN + ":\n" +
+          BACKSTORY_COLUMN + ": (**Remember Discord has a 2000 character limit!**)\n" +
+          IMAGE_COLUMN + ":\n" +
           "\\\`\\\`\\\`"
         );
       }
@@ -840,6 +840,51 @@ module.exports = function() {
       .catch((err) => {
         console.log(err);
         return 'Bot error: querying downtime failed.';
+      });
+  }
+
+  commands.scpMonthly = async function(message) {
+    const valueName = 'SESSION_CLAIM_POINTS';
+    const values = {};
+    values[globe.roles.ACTIVE] = 3;
+    values[globe.roles.GM] = 1;
+    values[globe.roles.KING] = 1;
+    values[globe.roles.DEMON] = 1;
+    values[globe.roles.GM_COACH] = 1;
+    const amountsToAdd = {};
+    await message.guild.members.fetch().then(members => {
+      members.forEach(member => {
+        message.guild.roles.cache.forEach((role) => {
+          const amount = values[role.name];
+          if (!!amount && member.roles.cache.find(r => r.name == role.name)) {
+            amountsToAdd[member.id] = amountsToAdd[member.id] || 0;
+            amountsToAdd[member.id] += amount;
+          }
+        });
+      })
+    });
+
+    const players = Object.keys(amountsToAdd);
+    await commands.registerPlayer(message, null, players);
+
+    return sheetOp.getSheet(PLAYERS_SHEET)
+      .then((table) => {
+        const valueCol = table[HEADER_ROW].indexOf(valueName);
+        let requests = [];
+        for (player of players) {
+          const playerRow = sheetOp.getRowWithValue(table, ID_COLUMN, player, true);
+          const curValue = table[playerRow][valueCol] ? parseInt(table[playerRow][valueCol]) : 0;
+          let newValue = curValue + amountsToAdd[player];
+          const scpMax = amountsToAdd[player]*2;
+          if (newValue > scpMax) newValue = scpMax;
+          let req = utils.genUpdateCellsRequest([newValue], PLAYERS_SHEET_ID, playerRow, valueCol);
+          requests.push(req);
+        };
+        return sheetOp.sendRequests(requests, message).then(() => {
+          return 'Successfully added monthly Session Claim Points.';
+        }).catch((err) => {
+          return 'Error modifying values.';
+        });
       });
   }
 
