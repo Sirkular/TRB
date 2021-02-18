@@ -101,7 +101,7 @@ module.exports = function() {
   */
   operations.searchRowAndIndex = function(table, location) {
     let row, data;
-    let columnHdr = table[0];
+    let columnHdr = table[HEADER_ROW];
 
     for (let i = 1; i < table.length; i++) {
       let isRow = true;
@@ -164,7 +164,7 @@ module.exports = function() {
   */
   operations.updateRowOnSheet = function(table, requests, sheetId, location, updates, message) {
     let req;
-    let columnHdr = table[0];
+    let columnHdr = table[HEADER_ROW];
 
     let searchResult = operations.searchRowAndIndex(table, location);
 

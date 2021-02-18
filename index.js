@@ -11,6 +11,7 @@ globe.roles = {
   MODERATOR: 'Moderator',
   RULES_TEAM: 'Rules Team',
   TECH_TEAM: 'Tech Team',
+  ACTIVE: 'Active'
 };
 require('dotenv').config();
 require('./branchConstants.js');
@@ -220,6 +221,10 @@ client.on('message', async message => {
     else {
       sendToChannel('Please provide one of the following: \`spend\` or \`check\`');
     }
+  }
+  else if (command === 'scpmonthly') {
+    if (message.member.user.id == '283958672294674435') commands.scpMonthly(message).then(sendToChannel); // Saint
+    else sendToChannel('Not authorized.');
   }
   else {
     sendToChannel('Command not recognized.');
