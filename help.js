@@ -28,7 +28,11 @@ module.exports = function() {
         "main": "Adds a specific amount for a resource for a list of character/player.\n\`add <resource> <amount> <LIST OF RECEIVERS>\`",
         "sub": {
           "mxp": "Adds MXP for specified characters.\n\`add mxp <amount> <CHARACTER NAME 1> <CHARACTER NAME 2> ... \`\n**Note:** Character name with no spaces. Just first prefix OK.",
-          "trb": "Adds specified TRB for specific players.\n\`add trb <dm/player/special> <amount> <PLAYER TAG 1> <PLAYER TAG 2> ... \`\n**Note:** Must tag player not just their names."
+          "insp": "Adds Inspiration for specified characters.\n\`add insp <amount> <CHARACTER NAME 1> <CHARACTER NAME 2> ... \`\n**Note:** Character name with no spaces. Just first prefix OK.",
+          "hp": "Adds Hero Points for specified characters.\n\`add hp <amount> <CHARACTER NAME 1> <CHARACTER NAME 2> ... \`\n**Note:** Character name with no spaces. Just first prefix OK.",
+          "trb": "Adds specified TRB for specific players.\n\`add trb <dm/player/special> <amount> <PLAYER TAG 1> <PLAYER TAG 2> ... \`\n**Note:** Must tag player not just their names.",
+          "token": "Adds Tokens for specific players.\n\`add token <amount> <PLAYER TAG 1> <PLAYER TAG 2> ... \`\n**Note:** Must tag player not just their names.",
+          "scp": "Adds Session Claim Points for specific players.\n\`add scp <amount> <PLAYER TAG 1> <PLAYER TAG 2> ... \`\n**Note:** Must tag player not just their names.",
         },
       },
       "spend": {
