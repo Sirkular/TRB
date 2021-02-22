@@ -196,6 +196,7 @@ module.exports = function() {
   * @param {message} initial message request
   */
   operations.addLogs = function(message) {
+    if (!message) return;
     var today = new Date();
     let requests = [];
     operations.getSheet(LOGS_SHEET)

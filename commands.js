@@ -8,7 +8,7 @@ module.exports = function() {
     const TRB_GUILD_ID = '722115343862202368';
     const TRB = client.guilds.cache.find(guild => guild.id == TRB_GUILD_ID);
     const botFeedbackChannel = TRB.channels.cache.find(channel => channel.name.toLowerCase() == 'bot-feedback'.toLowerCase());
-    commands.scpMonthly().then((out) => botFeedbackChannel.send(out))
+    commands.scpMonthly(TRB).then((out) => botFeedbackChannel.send(out))
   });
 
   HEADER_ROW = 0;
@@ -306,7 +306,7 @@ module.exports = function() {
 
   commands.registerPlayer = function(message, args, players) {
     return new Promise((resolve, reject) => {
-      let playerName = message.member.user.tag;
+      let playerName = message && message.member.user.tag;
       sheetOp.getSheet(PLAYERS_SHEET)
         .then((table) => {
           let requests = [];
@@ -868,7 +868,7 @@ module.exports = function() {
       });
   }
 
-  commands.scpMonthly = async function(message) {
+  commands.scpMonthly = async function(guild) {
     const valueName = 'SESSION_CLAIM_POINTS';
     const values = {};
     values[globe.roles.ACTIVE] = 3;
@@ -877,9 +877,9 @@ module.exports = function() {
     values[globe.roles.DEMON] = 1;
     values[globe.roles.GM_COACH] = 1;
     const amountsToAdd = {};
-    await message.guild.members.fetch().then(members => {
+    await guild.members.fetch().then(members => {
       members.forEach(member => {
-        message.guild.roles.cache.forEach((role) => {
+        guild.roles.cache.forEach((role) => {
           const amount = values[role.name];
           if (!!amount && member.roles.cache.find(r => r.name == role.name)) {
             amountsToAdd[member.id] = amountsToAdd[member.id] || 0;
@@ -890,7 +890,7 @@ module.exports = function() {
     });
 
     const players = Object.keys(amountsToAdd);
-    await commands.registerPlayer(message, null, players);
+    await commands.registerPlayer(null, null, players);
 
     return sheetOp.getSheet(PLAYERS_SHEET)
       .then((table) => {

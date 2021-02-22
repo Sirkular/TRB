@@ -222,10 +222,6 @@ client.on('message', async message => {
       sendToChannel('Please provide one of the following: \`spend\` or \`check\`');
     }
   }
-  else if (command === 'scpmonthly') {
-    if (message.member.user.id == '283958672294674435') commands.scpMonthly(message).then(sendToChannel); // Saint
-    else sendToChannel('Not authorized.');
-  }
   else {
     sendToChannel('Command not recognized.');
   }
