@@ -3,6 +3,14 @@ module.exports = function() {
   const sheetOp = require('./sheetOperations.js')();
   const utils = require('./utils.js')();
 
+  const nodeSchedule = require('node-schedule');
+  const scpMonthlyJob = nodeSchedule.scheduleJob('0 0 1 * *', function(){
+    const TRB_GUILD_ID = '722115343862202368';
+    const TRB = client.guilds.cache.find(guild => guild.id == TRB_GUILD_ID);
+    const botFeedbackChannel = TRB.channels.cache.find(channel => channel.name.toLowerCase() == 'bot-feedback'.toLowerCase());
+    commands.scpMonthly().then((out) => botFeedbackChannel.send(out))
+  });
+
   HEADER_ROW = 0;
   ID_COLUMN = 'ID';
   CHAR_COLUMN = 'CHAR_NAME';
@@ -70,7 +78,7 @@ module.exports = function() {
           let inspiration = data[columnHdr.indexOf(INSPIRATION_COLUMN)];
           let level = MXP_THRESHOLDS.indexOf(MXP_THRESHOLDS.find((th) => {return mxp < th;})) - 1;
           let embed = utils.constructEmbed(charName, "Level: " + level + ". MXP: " + mxp +
-              ". MXP to next level: " + (MXP_THRESHOLDS[level + 1] - mxp) + 
+              ". MXP to next level: " + (MXP_THRESHOLDS[level + 1] - mxp) +
               ".\nHero Points: " + ((typeof heroPoints === 'undefined') ? 0 : heroPoints) + " Inspiration: " + ((typeof inspiration === 'undefined') ? 0 : inspiration) + ".");
 
           let fields = [];
@@ -897,7 +905,7 @@ module.exports = function() {
           let req = utils.genUpdateCellsRequest([newValue], PLAYERS_SHEET_ID, playerRow, valueCol);
           requests.push(req);
         };
-        return sheetOp.sendRequests(requests, message).then(() => {
+        return sheetOp.sendRequests(requests, null, true).then(() => {
           return 'Successfully added monthly Session Claim Points.';
         }).catch((err) => {
           return 'Error modifying values.';
