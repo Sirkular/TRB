@@ -113,11 +113,11 @@ module.exports = function() {
   // Constructs new Embeded projects with specified parameters.
   utils.constructEmbed = function(title, desc, color) {
     if (!title) {
-      title = 'Default Title';
+      title = '';
     }
 
     if (!desc) {
-      desc = 'Default Description';
+      desc = '';
     }
 
     if (!color) {

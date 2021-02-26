@@ -3,6 +3,15 @@ globe = {};
 globe.roles = {
   GM: 'GM',
   TRIAL_GM: 'Trial GM',
+  SOLDIER: 'Soldier',
+  KING: 'King',
+  DEMON: 'Demon',
+  DEMON_DADDY: 'Demon Daddy',
+  GM_COACH: 'GM Coach',
+  MODERATOR: 'Moderator',
+  RULES_TEAM: 'Rules Team',
+  TECH_TEAM: 'Tech Team',
+  ACTIVE: 'Active'
 };
 require('dotenv').config();
 require('./branchConstants.js');
@@ -116,21 +125,46 @@ client.on('message', async message => {
       }
     }
     else if (args[0] === 'list') {
-      commands.listCharacter(message, args).then(sendToChannel);
+      if (message.mentions.members.first() &&
+          !globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM])) {
+        sendToChannel('Not authorized to get the data of others.');
+      }
+      else commands.listCharacter(message, args).then(sendToChannel);
+    }
+    else if (args[0] === 'update') {
+      commands.updateCharacter(message, args).then(sendToChannel);
     }
   }
   else if (command === 'add') {
+    const playerValues = ['token', 'scp'];
+    const playerValuesHeader = ['tokens', 'session_claim_points'];
+    const characterValues = ['mxp', 'hp', 'insp'];
+    const characterValuesHeader = ['mxp', 'hero_points', 'inspiration'];
     if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM])) {
       if (!args[0]) {
         sendToChannel('No resource entered.');
       }
       else if (args[0] === 'trb') {
         commands.registerPlayer(message, args).then((output) => {
-          commands.addValue(message, args).then(sendToChannel);
+          commands.addTRB(message, args).then(sendToChannel);
         });
       }
+      else if (playerValues.includes(args[0])) {
+        commands.registerPlayer(message, args).then((output) => {
+          const valueName = playerValuesHeader[playerValues.indexOf(args[0])].toUpperCase();
+          const amount = parseInt(args[1]);
+          const players = message.mentions.members.map(member => member.id);
+          if (isNaN(amount)) return sendToChannel('No amount was provided.');
+          if (!players.length) return sendToChannel('No players were mentioned.');
+          commands.addPlayerValue(message, players, valueName, amount).then(sendToChannel);
+        });
+      }
+      else if (characterValues.includes(args[0])) {
+        args[0] = characterValuesHeader[characterValues.indexOf(args[0])].toUpperCase();
+        commands.addCharacterValue(message, args).then(sendToChannel);
+      }
       else {
-        commands.addValue(message, args).then(sendToChannel);
+        sendToChannel('Invalid resource.');
       }
     }
     else
@@ -144,7 +178,7 @@ client.on('message', async message => {
       else if (args[0] === 'trb') {
         commands.registerPlayer(message, args).then((output) => {
           args.splice(1, 0, 'spent');
-          commands.addValue(message, args).then(sendToChannel);
+          commands.addTRB(message, args).then(sendToChannel);
         });
       }
       else {
