@@ -58,8 +58,8 @@ module.exports = function() {
     return new Promise((resolve, reject) => {
       let charName = args[0];
       if (!charName) resolve('No character name was given.')
-      sheetOp.getSheet(CHARACTERS_SHEET)
-        .then((table) => {
+      Promise.all([sheetOp.getSheet(CHARACTERS_SHEET), sheetOp.getSheet(TIMELINE_SHEET)])
+        .then(([table, timelineTable]) => {
           if (!globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]) &&
               !sheetOp.authorizedCharacter(table, message, charName))
             resolve('Not authorized to get the data of this character.');
@@ -77,7 +77,7 @@ module.exports = function() {
           let heroPoints = data[columnHdr.indexOf(HERO_POINTS_COLUMN)];
           let inspiration = data[columnHdr.indexOf(INSPIRATION_COLUMN)];
           let level = MXP_THRESHOLDS.indexOf(MXP_THRESHOLDS.find((th) => {return mxp < th;})) - 1;
-          let currentDay = 0;
+          let currentDay = getPresentDay(timelineTable, charName);
           let embed = utils.constructEmbed(charName, "Level: " + level + ". MXP: " + mxp +
               ". MXP to next level: " + (MXP_THRESHOLDS[level + 1] - mxp) +
               ".\nHero Points: " + ((typeof heroPoints === 'undefined') ? 0 : heroPoints) + " Inspiration: " + ((typeof inspiration === 'undefined') ? 0 : inspiration) + 
