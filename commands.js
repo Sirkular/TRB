@@ -77,9 +77,11 @@ module.exports = function() {
           let heroPoints = data[columnHdr.indexOf(HERO_POINTS_COLUMN)];
           let inspiration = data[columnHdr.indexOf(INSPIRATION_COLUMN)];
           let level = MXP_THRESHOLDS.indexOf(MXP_THRESHOLDS.find((th) => {return mxp < th;})) - 1;
+          let currentDay = 0;
           let embed = utils.constructEmbed(charName, "Level: " + level + ". MXP: " + mxp +
               ". MXP to next level: " + (MXP_THRESHOLDS[level + 1] - mxp) +
-              ".\nHero Points: " + ((typeof heroPoints === 'undefined') ? 0 : heroPoints) + " Inspiration: " + ((typeof inspiration === 'undefined') ? 0 : inspiration) + ".");
+              ".\nHero Points: " + ((typeof heroPoints === 'undefined') ? 0 : heroPoints) + " Inspiration: " + ((typeof inspiration === 'undefined') ? 0 : inspiration) + 
+              ".\nDay: " + ((typeof currentDay === 'undefined') ? 0 : currentDay) + ".");
 
           let fields = [];
           for (i = 0; i < info.length; i++) {
@@ -420,7 +422,10 @@ module.exports = function() {
     updatable = [RACE_COLUMN, SUBRACE_COLUMN, GENDER_COLUMN, CLASS_COLUMN, STATUS_COLUMN, NATIVE_COLUMN, REGION_COLUMN, VAULT_COLUMN, BACKGROUND_COLUMN, ALIGNMENT_COLUMN, BACKSTORY_COLUMN, IMAGE_COLUMN];
     return new Promise((resolve, reject) => {
       let location = {};
-      location[ID_COLUMN] = message.author.id;
+      if (!globe.authorized(message, [globe.roles.MODERATOR])) {
+        location[ID_COLUMN] = message.author.id;
+      }
+
       if (!args[1]) resolve('Please specify which character you are updating!');
       location[CHAR_COLUMN] = args[1];
 
@@ -456,7 +461,7 @@ module.exports = function() {
           VAULT_COLUMN + ":\n" +
           BACKGROUND_COLUMN + ":\n" +
           ALIGNMENT_COLUMN + ":\n" +
-          BACKSTORY_COLUMN + ": (**Remember Discord has a 2000 character limit!**)\n" +
+          BACKSTORY_COLUMN + ": (**Maximum 1024 characters!**)\n" +
           IMAGE_COLUMN + ":\n" +
           "\\\`\\\`\\\`"
         );
@@ -464,6 +469,9 @@ module.exports = function() {
 
       sheetOp.getSheet(CHARACTERS_SHEET)
         .then((table) => {
+          // Look for best character to update according to name.
+          location[CHAR_COLUMN] = table[parseInt(sheetOp.getRowWithValue(table, CHAR_COLUMN, location[CHAR_COLUMN], true))][table[HEADER_ROW].indexOf(CHAR_COLUMN)]
+
           let requests = [];
           requests = sheetOp.updateRowOnSheet(table, requests, CHARACTERS_SHEET_ID, location, updates, message);
 
