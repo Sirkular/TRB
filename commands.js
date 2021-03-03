@@ -60,7 +60,7 @@ module.exports = function() {
       if (!charName) resolve('No character name was given.')
       sheetOp.getSheet(CHARACTERS_SHEET)
         .then((table) => {
-          if (!globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]) &&
+          if (!globe.checkDefaultAuthorized(message) &&
               !sheetOp.authorizedCharacter(table, message, charName))
             resolve('Not authorized to get the data of this character.');
 
@@ -108,7 +108,7 @@ module.exports = function() {
     return new Promise((resolve, reject) => {
       Promise.all([sheetOp.getSheet(PLAYERS_SHEET), sheetOp.getSheet(CHARACTERS_SHEET)])
         .then(([table, characterTable]) => {
-          if (!globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]) &&
+          if (!globe.checkDefaultAuthorized(message) &&
               playerId != message.member.user.id)
             resolve('Not authorized to get the data of this player.');
 
@@ -842,7 +842,7 @@ module.exports = function() {
     day = parseInt(day);
     return sheetOp.getSheet(TIMELINE_SHEET)
       .then((table) => {
-        if (!globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]) &&
+        if (!globe.checkDefaultAuthorized(message) &&
             !sheetOp.authorizedCharacter(table, message, char))
           return 'Not authorized to get the data of this character.';
         const downtimeObj = findAllDowntime(table, char);
