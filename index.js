@@ -29,6 +29,7 @@ globe.authorized = function(message, authorizedRoles) {
 
 const Discord = require('discord.js');
 const client = new Discord.Client();
+globe.discordClient = client;
 
 // Here we load the config.json file that contains our token and our prefix values.
 const config = require('./config.json');
@@ -221,6 +222,12 @@ client.on('message', async message => {
     else {
       sendToChannel('Please provide one of the following: \`spend\` or \`check\`');
     }
+  }
+  else if (command === 'scpmonthly') {
+    if (message.author.id === '283958672294674435') {
+      commands.scpMonthlyManual();
+    }
+    else sendToChannel('Not authorized.');
   }
   else {
     sendToChannel('Command not recognized.');
