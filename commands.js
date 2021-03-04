@@ -4,12 +4,13 @@ module.exports = function() {
   const utils = require('./utils.js')();
 
   const nodeSchedule = require('node-schedule');
-  const scpMonthlyJob = nodeSchedule.scheduleJob('0 0 1 * *', function(){
+  const scpMonthlyJob = nodeSchedule.scheduleJob('0 0 1 * *', commands.scpMonthlyManual);
+  commands.scpMonthlyManual = function() {
     const TRB_GUILD_ID = '722115343862202368';
-    const TRB = client.guilds.cache.find(guild => guild.id == TRB_GUILD_ID);
+    const TRB = globe.discordClient.guilds.cache.find(guild => guild.id == TRB_GUILD_ID);
     const botFeedbackChannel = TRB.channels.cache.find(channel => channel.name.toLowerCase() == 'bot-feedback'.toLowerCase());
-    commands.scpMonthly(TRB).then((out) => botFeedbackChannel.send(out))
-  });
+    commands.scpMonthly(TRB).then((out) => botFeedbackChannel.send(out));
+  }
 
   HEADER_ROW = 0;
   ID_COLUMN = 'ID';
