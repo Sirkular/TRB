@@ -61,7 +61,7 @@ module.exports = function() {
       Promise.all([sheetOp.getSheet(CHARACTERS_SHEET), sheetOp.getSheet(TIMELINE_SHEET)])
         .then(([characterTable, timelineTable]) => {
           if (!globe.checkDefaultAuthorized(message) &&
-              !sheetOp.authorizedCharacter(table, message, charName))
+              !sheetOp.authorizedCharacter(characterTable, message, charName))
             resolve('Not authorized to get the data of this character.');
 
           let columnHdr = characterTable[HEADER_ROW];
@@ -422,7 +422,7 @@ module.exports = function() {
     updatable = [RACE_COLUMN, SUBRACE_COLUMN, GENDER_COLUMN, CLASS_COLUMN, STATUS_COLUMN, NATIVE_COLUMN, REGION_COLUMN, VAULT_COLUMN, BACKGROUND_COLUMN, ALIGNMENT_COLUMN, BACKSTORY_COLUMN, IMAGE_COLUMN];
     return new Promise((resolve, reject) => {
       let location = {};
-      if (!globe.authorized(message, [globe.roles.MODERATOR])) {
+      if (!globe.checkDefaultAuthorized(message)) {
         location[ID_COLUMN] = message.author.id;
       }
 
