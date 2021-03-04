@@ -20,15 +20,21 @@ require('./branchConstants.js');
 * @param message - A Discord.js message object.
 * @param authorizedRoles - An array of enums from roles.
 */
-globe.authorized = function(message, authorizedRoles) {
+globe.checkAuthorized = function(message, authorizedRoles) {
   const authorRoles = message.member.roles.cache;
   return !!authorRoles.find(role => authorizedRoles.includes(role.name));
 };
+
+globe.checkDefaultAuthorized = function(message) {
+  const defaultAuthorizedRoles = [globe.roles.GM, globe.roles.TRIAL_GM, globe.roles.MODERATOR];
+  return globe.checkAuthorized(message, defaultAuthorizedRoles);
+}
 
 ///////////////////////////////Discord Setup///////////////////////////////////
 
 const Discord = require('discord.js');
 const client = new Discord.Client();
+globe.discordClient = client;
 
 // Here we load the config.json file that contains our token and our prefix values.
 const config = require('./config.json');
@@ -101,7 +107,7 @@ client.on('message', async message => {
       commands.getPlayerInfo(message, args).then(sendToChannel);
     }
     else if (message.mentions.users.first()) {
-      if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM])) {
+      if (globe.checkDefaultAuthorized(message)) {
         commands.getPlayerInfo(message, args).then(sendToChannel);
       }
       else {
@@ -117,7 +123,7 @@ client.on('message', async message => {
       commands.registerCharacter(message, args).then(sendToChannel);
     }
     else if (args[0] === 'delete') {
-      if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM])) {
+      if (globe.checkDefaultAuthorized(message)) {
         commands.deleteCharacter(message, args).then(sendToChannel);
       }
       else {
@@ -126,7 +132,7 @@ client.on('message', async message => {
     }
     else if (args[0] === 'list') {
       if (message.mentions.members.first() &&
-          !globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM])) {
+          !globe.checkDefaultAuthorized(message)) {
         sendToChannel('Not authorized to get the data of others.');
       }
       else commands.listCharacter(message, args).then(sendToChannel);
@@ -140,7 +146,7 @@ client.on('message', async message => {
     const playerValuesHeader = ['tokens', 'session_claim_points'];
     const characterValues = ['mxp', 'hp', 'insp'];
     const characterValuesHeader = ['mxp', 'hero_points', 'inspiration'];
-    if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM])) {
+    if (globe.checkDefaultAuthorized(message)) {
       if (!args[0]) {
         sendToChannel('No resource entered.');
       }
@@ -171,7 +177,7 @@ client.on('message', async message => {
       sendToChannel('Not authorized.');
   }
   else if (command === 'spend') {
-    if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM])) {
+    if (globe.checkDefaultAuthorized(message)) {
       if (!args[0]) {
         sendToChannel('No resource entered.');
       }
@@ -190,13 +196,13 @@ client.on('message', async message => {
   }
   else if (command === 'timeline') {
     if (args[0] === 'advance') {
-      if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]))
+      if (globe.checkDefaultAuthorized(message))
         commands.advanceTimeline(message, args.slice(1)).then(sendToChannel);
       else
         sendToChannel('Not authorized.');
     }
     else if (args[0] === 'setperiod') {
-      if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]))
+      if (globe.checkDefaultAuthorized(message))
         commands.advanceTimeline(message, args.slice(1), true).then(sendToChannel);
       else
         sendToChannel('Not authorized.');
@@ -210,7 +216,7 @@ client.on('message', async message => {
   }
   else if (command === 'downtime') {
     if (args[0] === 'spend') {
-      if (globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]))
+      if (globe.checkDefaultAuthorized(message))
         commands.spendDowntime(message, args.slice(1)).then(sendToChannel);
       else
         sendToChannel('Not authorized.');
@@ -221,6 +227,12 @@ client.on('message', async message => {
     else {
       sendToChannel('Please provide one of the following: \`spend\` or \`check\`');
     }
+  }
+  else if (command === 'scpmonthly') {
+    if (message.author.id === '283958672294674435') {
+      commands.scpMonthlyManual();
+    }
+    else sendToChannel('Not authorized.');
   }
   else {
     sendToChannel('Command not recognized.');
