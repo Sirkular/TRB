@@ -59,19 +59,19 @@ module.exports = function() {
       let charName = args[0];
       if (!charName) resolve('No character name was given.')
       Promise.all([sheetOp.getSheet(CHARACTERS_SHEET), sheetOp.getSheet(TIMELINE_SHEET)])
-        .then(([table, timelineTable]) => {
+        .then(([characterTable, timelineTable]) => {
           if (!globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]) &&
               !sheetOp.authorizedCharacter(table, message, charName))
             resolve('Not authorized to get the data of this character.');
 
-          let columnHdr = table[HEADER_ROW];
+          let columnHdr = characterTable[HEADER_ROW];
           let location = {};
           // location[ID_COLUMN] = message.author.id;
           location[CHAR_COLUMN] = charName;
-          let row = sheetOp.getRowWithValue(table, CHAR_COLUMN, charName, true);
+          let row = sheetOp.getRowWithValue(characterTable, CHAR_COLUMN, charName, true);
           if (row == -1) return resolve('Character does not exist!');
 
-          let data = table[row];
+          let data = characterTable[row];
 
           let mxp = data[columnHdr.indexOf(MXP_COLUMN)];
           let heroPoints = data[columnHdr.indexOf(HERO_POINTS_COLUMN)];
@@ -109,16 +109,16 @@ module.exports = function() {
     if (message.mentions.users.first()) playerId = message.mentions.users.first().id;
     return new Promise((resolve, reject) => {
       Promise.all([sheetOp.getSheet(PLAYERS_SHEET), sheetOp.getSheet(CHARACTERS_SHEET)])
-        .then(([table, characterTable]) => {
+        .then(([playerTable, characterTable]) => {
           if (!globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]) &&
               playerId != message.member.user.id)
             resolve('Not authorized to get the data of this player.');
 
-          let columnHdr = table[HEADER_ROW];
-          let row = sheetOp.getRowWithValue(table, PLAYER_ID_COLUMN, playerId, true);
+          let columnHdr = playerTable[HEADER_ROW];
+          let row = sheetOp.getRowWithValue(playerTable, PLAYER_ID_COLUMN, playerId, true);
           if (row == -1) return resolve('Player is not registered yet!');
 
-          let data = table[row];
+          let data = playerTable[row];
 
           let playerName;
           let playerRoles = [];
