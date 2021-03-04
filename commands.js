@@ -4,12 +4,13 @@ module.exports = function() {
   const utils = require('./utils.js')();
 
   const nodeSchedule = require('node-schedule');
-  const scpMonthlyJob = nodeSchedule.scheduleJob('0 0 1 * *', function(){
+  const scpMonthlyJob = nodeSchedule.scheduleJob('0 0 1 * *', commands.scpMonthlyManual);
+  commands.scpMonthlyManual = function() {
     const TRB_GUILD_ID = '722115343862202368';
-    const TRB = client.guilds.cache.find(guild => guild.id == TRB_GUILD_ID);
+    const TRB = globe.discordClient.guilds.cache.find(guild => guild.id == TRB_GUILD_ID);
     const botFeedbackChannel = TRB.channels.cache.find(channel => channel.name.toLowerCase() == 'bot-feedback'.toLowerCase());
-    commands.scpMonthly(TRB).then((out) => botFeedbackChannel.send(out))
-  });
+    commands.scpMonthly(TRB).then((out) => botFeedbackChannel.send(out));
+  }
 
   HEADER_ROW = 0;
   ID_COLUMN = 'ID';
@@ -60,7 +61,7 @@ module.exports = function() {
       if (!charName) resolve('No character name was given.')
       sheetOp.getSheet(CHARACTERS_SHEET)
         .then((table) => {
-          if (!globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]) &&
+          if (!globe.checkDefaultAuthorized(message) &&
               !sheetOp.authorizedCharacter(table, message, charName))
             resolve('Not authorized to get the data of this character.');
 
@@ -108,7 +109,7 @@ module.exports = function() {
     return new Promise((resolve, reject) => {
       Promise.all([sheetOp.getSheet(PLAYERS_SHEET), sheetOp.getSheet(CHARACTERS_SHEET)])
         .then(([table, characterTable]) => {
-          if (!globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]) &&
+          if (!globe.checkDefaultAuthorized(message) &&
               playerId != message.member.user.id)
             resolve('Not authorized to get the data of this player.');
 
@@ -842,7 +843,7 @@ module.exports = function() {
     day = parseInt(day);
     return sheetOp.getSheet(TIMELINE_SHEET)
       .then((table) => {
-        if (!globe.authorized(message, [globe.roles.GM, globe.roles.TRIAL_GM]) &&
+        if (!globe.checkDefaultAuthorized(message) &&
             !sheetOp.authorizedCharacter(table, message, char))
           return 'Not authorized to get the data of this character.';
         const downtimeObj = findAllDowntime(table, char);
