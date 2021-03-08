@@ -95,7 +95,7 @@ module.exports = function() {
   }
 
   /**
-  * Compares multiple parameters to rows to find match andeturns index and array for first matched values.
+  * Compares multiple parameters to rows to find match and returns index and array for first matched values.
   * @param {2D Array} table - Table array to search.
   * @param {Object} location - Object with key indicating column name and value to compare to for location placement.
   */
