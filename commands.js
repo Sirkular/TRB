@@ -60,28 +60,30 @@ module.exports = function() {
     return new Promise((resolve, reject) => {
       let charName = args[0];
       if (!charName) resolve('No character name was given.')
-      sheetOp.getSheet(CHARACTERS_SHEET)
-        .then((table) => {
+      Promise.all([sheetOp.getSheet(CHARACTERS_SHEET), sheetOp.getSheet(TIMELINE_SHEET)])
+        .then(([characterTable, timelineTable]) => {
           if (!globe.checkDefaultAuthorized(message) &&
-              !sheetOp.authorizedCharacter(table, message, charName))
+              !sheetOp.authorizedCharacter(characterTable, message, charName))
             resolve('Not authorized to get the data of this character.');
 
-          let columnHdr = table[HEADER_ROW];
+          let columnHdr = characterTable[HEADER_ROW];
           let location = {};
           // location[ID_COLUMN] = message.author.id;
           location[CHAR_COLUMN] = charName;
-          let row = sheetOp.getRowWithValue(table, CHAR_COLUMN, charName, true);
+          let row = sheetOp.getRowWithValue(characterTable, CHAR_COLUMN, charName, true);
           if (row == -1) return resolve('Character does not exist!');
 
-          let data = table[row];
+          let data = characterTable[row];
 
           let mxp = data[columnHdr.indexOf(MXP_COLUMN)];
           let heroPoints = data[columnHdr.indexOf(HERO_POINTS_COLUMN)];
           let inspiration = data[columnHdr.indexOf(INSPIRATION_COLUMN)];
           let level = MXP_THRESHOLDS.indexOf(MXP_THRESHOLDS.find((th) => {return mxp < th;})) - 1;
+          let currentDay = getPresentDay(timelineTable, charName);
           let embed = utils.constructEmbed(charName, "Level: " + level + ". MXP: " + mxp +
               ". MXP to next level: " + (MXP_THRESHOLDS[level + 1] - mxp) +
-              ".\nHero Points: " + ((typeof heroPoints === 'undefined') ? 0 : heroPoints) + " Inspiration: " + ((typeof inspiration === 'undefined') ? 0 : inspiration) + ".");
+              ".\nHero Points: " + ((typeof heroPoints === 'undefined') ? 0 : heroPoints) + " Inspiration: " + ((typeof inspiration === 'undefined') ? 0 : inspiration) + 
+              ".\nDay: " + ((typeof currentDay === 'undefined') ? 0 : currentDay) + ".");
 
           let fields = [];
           for (i = 0; i < info.length; i++) {
@@ -109,16 +111,16 @@ module.exports = function() {
     if (message.mentions.users.first()) playerId = message.mentions.users.first().id;
     return new Promise((resolve, reject) => {
       Promise.all([sheetOp.getSheet(PLAYERS_SHEET), sheetOp.getSheet(CHARACTERS_SHEET)])
-        .then(([table, characterTable]) => {
+        .then(([playerTable, characterTable]) => {
           if (!globe.checkDefaultAuthorized(message) &&
               playerId != message.member.user.id)
             resolve('Not authorized to get the data of this player.');
 
-          let columnHdr = table[HEADER_ROW];
-          let row = sheetOp.getRowWithValue(table, PLAYER_ID_COLUMN, playerId, true);
+          let columnHdr = playerTable[HEADER_ROW];
+          let row = sheetOp.getRowWithValue(playerTable, PLAYER_ID_COLUMN, playerId, true);
           if (row == -1) return resolve('Player is not registered yet!');
 
-          let data = table[row];
+          let data = playerTable[row];
 
           let playerName;
           let playerRoles = [];
@@ -422,7 +424,10 @@ module.exports = function() {
     updatable = [RACE_COLUMN, SUBRACE_COLUMN, GENDER_COLUMN, CLASS_COLUMN, STATUS_COLUMN, NATIVE_COLUMN, REGION_COLUMN, VAULT_COLUMN, BACKGROUND_COLUMN, ALIGNMENT_COLUMN, BACKSTORY_COLUMN, IMAGE_COLUMN];
     return new Promise((resolve, reject) => {
       let location = {};
-      location[ID_COLUMN] = message.author.id;
+      if (!globe.checkDefaultAuthorized(message)) {
+        location[ID_COLUMN] = message.author.id;
+      }
+
       if (!args[1]) resolve('Please specify which character you are updating!');
       location[CHAR_COLUMN] = args[1];
 
@@ -458,7 +463,7 @@ module.exports = function() {
           VAULT_COLUMN + ":\n" +
           BACKGROUND_COLUMN + ":\n" +
           ALIGNMENT_COLUMN + ":\n" +
-          BACKSTORY_COLUMN + ": (**Remember Discord has a 2000 character limit!**)\n" +
+          BACKSTORY_COLUMN + ": (**Maximum 1024 characters!**)\n" +
           IMAGE_COLUMN + ":\n" +
           "\\\`\\\`\\\`"
         );
@@ -466,6 +471,9 @@ module.exports = function() {
 
       sheetOp.getSheet(CHARACTERS_SHEET)
         .then((table) => {
+          // Look for best character to update according to name.
+          location[CHAR_COLUMN] = table[parseInt(sheetOp.getRowWithValue(table, CHAR_COLUMN, location[CHAR_COLUMN], true))][table[HEADER_ROW].indexOf(CHAR_COLUMN)]
+
           let requests = [];
           requests = sheetOp.updateRowOnSheet(table, requests, CHARACTERS_SHEET_ID, location, updates, message);
 
