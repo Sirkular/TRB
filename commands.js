@@ -23,7 +23,6 @@ module.exports = function() {
   STATUS_COLUMN = 'STATUS';
   NATIVE_COLUMN = 'NATIVE';
   REGION_COLUMN = 'REGION';
-  VAULT_COLUMN = 'VAULT';
   BACKGROUND_COLUMN = 'BACKGROUND';
   ALIGNMENT_COLUMN = 'ALIGNMENT';
   BACKSTORY_COLUMN = 'BACKSTORY';
@@ -53,7 +52,7 @@ module.exports = function() {
 
   commands.getCharacterInfo = function(message, args) {
     let info = [RACE_COLUMN, SUBRACE_COLUMN, GENDER_COLUMN, CLASS_COLUMN, STATUS_COLUMN, BACKGROUND_COLUMN, NATIVE_COLUMN, REGION_COLUMN,
-      VAULT_COLUMN, ALIGNMENT_COLUMN, BACKSTORY_COLUMN];
+      ALIGNMENT_COLUMN, BACKSTORY_COLUMN];
 
     return new Promise((resolve, reject) => {
       let charName = args[0];
@@ -419,7 +418,7 @@ module.exports = function() {
   }
 
   commands.updateCharacter = function(message, args) {
-    updatable = [RACE_COLUMN, SUBRACE_COLUMN, GENDER_COLUMN, CLASS_COLUMN, STATUS_COLUMN, NATIVE_COLUMN, REGION_COLUMN, VAULT_COLUMN, BACKGROUND_COLUMN, ALIGNMENT_COLUMN, BACKSTORY_COLUMN, IMAGE_COLUMN];
+    updatable = [RACE_COLUMN, SUBRACE_COLUMN, GENDER_COLUMN, CLASS_COLUMN, STATUS_COLUMN, NATIVE_COLUMN, REGION_COLUMN, BACKGROUND_COLUMN, ALIGNMENT_COLUMN, BACKSTORY_COLUMN, IMAGE_COLUMN];
     return new Promise((resolve, reject) => {
       let location = {};
       if (!globe.checkDefaultAuthorized(message)) {
@@ -431,7 +430,7 @@ module.exports = function() {
 
       let updates = {};
       if (!args[2] && args[1] != 'help') {
-        return resolve('You need to specify what you want to update! You can choose from: Race, Subrace, Gender, Class, Status, Native, Region, Vault, Background, Alignment, Backstory, Image.\n' +
+        return resolve('You need to specify what you want to update! You can choose from: Race, Subrace, Gender, Class, Status, Native, Region, Background, Alignment, Backstory, Image.\n' +
             'You can also do \`\\char update help\` for more information');
       }
       else if (args[1] != 'help' && updatable.includes(args[2].toUpperCase())) {
@@ -458,7 +457,6 @@ module.exports = function() {
           STATUS_COLUMN + ":\n" +
           NATIVE_COLUMN + ":\n" +
           REGION_COLUMN + ":\n" +
-          VAULT_COLUMN + ":\n" +
           BACKGROUND_COLUMN + ":\n" +
           ALIGNMENT_COLUMN + ":\n" +
           BACKSTORY_COLUMN + ": (**Maximum 1024 characters!**)\n" +
