@@ -77,25 +77,32 @@ module.exports = function() {
           let inspiration = data[columnHdr.indexOf(INSPIRATION_COLUMN)];
           let level = MXP_THRESHOLDS.indexOf(MXP_THRESHOLDS.find((th) => {return mxp < th;})) - 1;
           let currentDay = getPresentDay(timelineTable, charName) - timelineTable[HEADER_ROW].indexOf(TIMELINE_START_COLUMN);
-          let embed = utils.constructEmbed(charName, "Level: " + level + ". MXP: " + mxp +
-              ". MXP to next level: " + (MXP_THRESHOLDS[level + 1] - mxp) +
-              ".\nHero Points: " + ((typeof heroPoints === 'undefined') ? 0 : heroPoints) + " Inspiration: " + ((typeof inspiration === 'undefined') ? 0 : inspiration) + 
-              ".\nDay: " + ((typeof currentDay === 'undefined') ? 0 : currentDay) + ".");
+          message.client.users.fetch(data[columnHdr.indexOf(ID_COLUMN)]).then((ownerName) => {
+            commands.queryDowntime(message, charName).then((currentDowntimePhrase) => {
+                let downtimePhraseSplit = currentDowntimePhrase.split(" ");
+                let currentDowntime = downtimePhraseSplit[downtimePhraseSplit.length - 3];
 
-          let fields = [];
-          for (i = 0; i < info.length; i++) {
-            fields.push({
-              name: info[i],
-              value: (typeof data[columnHdr.indexOf(info[i])] === 'undefined') ? 'Not Set' : data[columnHdr.indexOf(info[i])],
-              inline: true,
+                let embed = utils.constructEmbed(charName + " (" + ownerName.username + ")", "Level: " + level + ". MXP: " + mxp +
+                    ". MXP to next level: " + (MXP_THRESHOLDS[level + 1] - mxp) +
+                    ".\nHero Points: " + ((typeof heroPoints === 'undefined') ? 0 : heroPoints) + " Inspiration: " + ((typeof inspiration === 'undefined') ? 0 : inspiration) + 
+                    ".\nDay: " + ((typeof currentDay === 'undefined') ? 0 : currentDay) + ".\nDowntime: " + ((typeof currentDay === 'undefined') ? 0 : currentDowntime) + " days" + ".");
+
+                let fields = [];
+                for (i = 0; i < info.length; i++) {
+                  fields.push({
+                    name: info[i],
+                    value: (typeof data[columnHdr.indexOf(info[i])] === 'undefined') ? 'Not Set' : data[columnHdr.indexOf(info[i])],
+                    inline: true,
+                  });
+                };
+
+                embed.addFields(fields);
+                if (data[columnHdr.indexOf(IMAGE_COLUMN)] != 0) {
+                  embed.setImage(data[columnHdr.indexOf(IMAGE_COLUMN)]);
+                };
+                resolve({embed});
             });
-          };
-
-          embed.addFields(fields);
-          if (data[columnHdr.indexOf(IMAGE_COLUMN)] != 0) {
-            embed.setImage(data[columnHdr.indexOf(IMAGE_COLUMN)]);
-          };
-          resolve({embed});
+          });
         }).catch((err) => {console.log('getCharacterInfo error: ' + err)});
     });
   };
