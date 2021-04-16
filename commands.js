@@ -25,7 +25,6 @@ module.exports = function() {
   STATUS_COLUMN = 'STATUS';
   NATIVE_COLUMN = 'NATIVE';
   REGION_COLUMN = 'REGION';
-  VAULT_COLUMN = 'VAULT';
   BACKGROUND_COLUMN = 'BACKGROUND';
   ALIGNMENT_COLUMN = 'ALIGNMENT';
   BACKSTORY_COLUMN = 'BACKSTORY';
@@ -55,7 +54,7 @@ module.exports = function() {
 
   commands.getCharacterInfo = function(message, args) {
     let info = [RACE_COLUMN, SUBRACE_COLUMN, GENDER_COLUMN, CLASS_COLUMN, STATUS_COLUMN, BACKGROUND_COLUMN, NATIVE_COLUMN, REGION_COLUMN,
-      VAULT_COLUMN, ALIGNMENT_COLUMN, BACKSTORY_COLUMN];
+      ALIGNMENT_COLUMN, BACKSTORY_COLUMN];
 
     return new Promise((resolve, reject) => {
       let charName = args[0];
@@ -79,26 +78,33 @@ module.exports = function() {
           let heroPoints = data[columnHdr.indexOf(HERO_POINTS_COLUMN)];
           let inspiration = data[columnHdr.indexOf(INSPIRATION_COLUMN)];
           let level = MXP_THRESHOLDS.indexOf(MXP_THRESHOLDS.find((th) => {return mxp < th;})) - 1;
-          let currentDay = getPresentDay(timelineTable, charName);
-          let embed = utils.constructEmbed(charName, "Level: " + level + ". MXP: " + mxp +
-              ". MXP to next level: " + (MXP_THRESHOLDS[level + 1] - mxp) +
-              ".\nHero Points: " + ((typeof heroPoints === 'undefined') ? 0 : heroPoints) + " Inspiration: " + ((typeof inspiration === 'undefined') ? 0 : inspiration) + 
-              ".\nDay: " + ((typeof currentDay === 'undefined') ? 0 : currentDay) + ".");
+          let currentDay = getPresentDay(timelineTable, charName) - timelineTable[HEADER_ROW].indexOf(TIMELINE_START_COLUMN);
+          message.client.users.fetch(data[columnHdr.indexOf(ID_COLUMN)]).then((ownerName) => {
+            commands.queryDowntime(message, charName).then((currentDowntimePhrase) => {
+                let downtimePhraseSplit = currentDowntimePhrase.split(" ");
+                let currentDowntime = downtimePhraseSplit[downtimePhraseSplit.length - 3];
 
-          let fields = [];
-          for (i = 0; i < info.length; i++) {
-            fields.push({
-              name: info[i],
-              value: (typeof data[columnHdr.indexOf(info[i])] === 'undefined') ? 'Not Set' : data[columnHdr.indexOf(info[i])],
-              inline: true,
+                let embed = utils.constructEmbed(charName + " (" + ownerName.username + ")", "Level: " + level + ". MXP: " + mxp +
+                    ". MXP to next level: " + (MXP_THRESHOLDS[level + 1] - mxp) +
+                    ".\nHero Points: " + ((typeof heroPoints === 'undefined') ? 0 : heroPoints) + " Inspiration: " + ((typeof inspiration === 'undefined') ? 0 : inspiration) +
+                    ".\nDay: " + ((typeof currentDay === 'undefined') ? 0 : currentDay) + ".\nDowntime: " + ((typeof currentDay === 'undefined') ? 0 : currentDowntime) + " days" + ".");
+
+                let fields = [];
+                for (i = 0; i < info.length; i++) {
+                  fields.push({
+                    name: info[i],
+                    value: (typeof data[columnHdr.indexOf(info[i])] === 'undefined') ? 'Not Set' : data[columnHdr.indexOf(info[i])],
+                    inline: true,
+                  });
+                };
+
+                embed.addFields(fields);
+                if (data[columnHdr.indexOf(IMAGE_COLUMN)] != 0) {
+                  embed.setImage(data[columnHdr.indexOf(IMAGE_COLUMN)]);
+                };
+                resolve({embed});
             });
-          };
-
-          embed.addFields(fields);
-          if (data[columnHdr.indexOf(IMAGE_COLUMN)] != 0) {
-            embed.setImage(data[columnHdr.indexOf(IMAGE_COLUMN)]);
-          };
-          resolve({embed});
+          });
         }).catch((err) => {console.log('getCharacterInfo error: ' + err)});
     });
   };
@@ -398,30 +404,29 @@ module.exports = function() {
 
   commands.listCharacter = function(message, args) {
     return new Promise((resolve, reject) => {
-      let playerId = message.mentions.members.first() || message.member.user.id;
-      let playerName = message.member.user.tag;
+      let player = message.mentions.members.first() || message.member.user;
       let charList = [];
       sheetOp.getSheet(CHARACTERS_SHEET)
         .then((table) => {
           let idRowIdx = table[HEADER_ROW].indexOf(ID_COLUMN);
           let charNameRowIdx = table[HEADER_ROW].indexOf(CHAR_COLUMN);
           for (i = 1; i < table.length; i++) {
-            if (table[i][idRowIdx] === playerId) {
+            if (table[i][idRowIdx] === player.id) {
               charList.push(table[i][charNameRowIdx]);
             };
           };
 
           if (charList.length === 0) {
-            resolve(playerId.toString() + ' has no characters registered yet!');
+            resolve(player.toString() + ' has no characters registered yet!');
           };
 
-          resolve('Registered characters for ' + playerId.toString() + ': ' + charList.join(', '));
+          resolve('Registered characters for ' + player.toString() + ': ' + charList.join(', '));
         }).catch((err) => {console.log('listCharacter error: ' + err)});
     });
   }
 
   commands.updateCharacter = function(message, args) {
-    updatable = [RACE_COLUMN, SUBRACE_COLUMN, GENDER_COLUMN, CLASS_COLUMN, STATUS_COLUMN, NATIVE_COLUMN, REGION_COLUMN, VAULT_COLUMN, BACKGROUND_COLUMN, ALIGNMENT_COLUMN, BACKSTORY_COLUMN, IMAGE_COLUMN];
+    updatable = [RACE_COLUMN, SUBRACE_COLUMN, GENDER_COLUMN, CLASS_COLUMN, STATUS_COLUMN, NATIVE_COLUMN, REGION_COLUMN, BACKGROUND_COLUMN, ALIGNMENT_COLUMN, BACKSTORY_COLUMN, IMAGE_COLUMN];
     return new Promise((resolve, reject) => {
       let location = {};
       if (!globe.checkDefaultAuthorized(message)) {
@@ -433,7 +438,7 @@ module.exports = function() {
 
       let updates = {};
       if (!args[2] && args[1] != 'help') {
-        return resolve('You need to specify what you want to update! You can choose from: Race, Subrace, Gender, Class, Status, Native, Region, Vault, Background, Alignment, Backstory, Image.\n' +
+        return resolve('You need to specify what you want to update! You can choose from: Race, Subrace, Gender, Class, Status, Native, Region, Background, Alignment, Backstory, Image.\n' +
             'You can also do \`\\char update help\` for more information');
       }
       else if (args[1] != 'help' && updatable.includes(args[2].toUpperCase())) {
@@ -460,7 +465,6 @@ module.exports = function() {
           STATUS_COLUMN + ":\n" +
           NATIVE_COLUMN + ":\n" +
           REGION_COLUMN + ":\n" +
-          VAULT_COLUMN + ":\n" +
           BACKGROUND_COLUMN + ":\n" +
           ALIGNMENT_COLUMN + ":\n" +
           BACKSTORY_COLUMN + ": (**Maximum 1024 characters!**)\n" +
