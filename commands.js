@@ -86,7 +86,7 @@ module.exports = function() {
 
                 let embed = utils.constructEmbed(charName + " (" + ownerName.username + ")", "Level: " + level + ". MXP: " + mxp +
                     ". MXP to next level: " + (MXP_THRESHOLDS[level + 1] - mxp) +
-                    ".\nHero Points: " + ((typeof heroPoints === 'undefined') ? 0 : heroPoints) + " Inspiration: " + ((typeof inspiration === 'undefined') ? 0 : inspiration) + 
+                    ".\nHero Points: " + ((typeof heroPoints === 'undefined') ? 0 : heroPoints) + " Inspiration: " + ((typeof inspiration === 'undefined') ? 0 : inspiration) +
                     ".\nDay: " + ((typeof currentDay === 'undefined') ? 0 : currentDay) + ".\nDowntime: " + ((typeof currentDay === 'undefined') ? 0 : currentDowntime) + " days" + ".");
 
                 let fields = [];
@@ -404,24 +404,23 @@ module.exports = function() {
 
   commands.listCharacter = function(message, args) {
     return new Promise((resolve, reject) => {
-      let playerId = message.mentions.members.first() || message.member.user.id;
-      let playerName = message.member.user.tag;
+      let player = message.mentions.members.first() || message.member.user;
       let charList = [];
       sheetOp.getSheet(CHARACTERS_SHEET)
         .then((table) => {
           let idRowIdx = table[HEADER_ROW].indexOf(ID_COLUMN);
           let charNameRowIdx = table[HEADER_ROW].indexOf(CHAR_COLUMN);
           for (i = 1; i < table.length; i++) {
-            if (table[i][idRowIdx] === playerId) {
+            if (table[i][idRowIdx] === player.id) {
               charList.push(table[i][charNameRowIdx]);
             };
           };
 
           if (charList.length === 0) {
-            resolve(playerId.toString() + ' has no characters registered yet!');
+            resolve(player.toString() + ' has no characters registered yet!');
           };
 
-          resolve('Registered characters for ' + playerId.toString() + ': ' + charList.join(', '));
+          resolve('Registered characters for ' + player.toString() + ': ' + charList.join(', '));
         }).catch((err) => {console.log('listCharacter error: ' + err)});
     });
   }
