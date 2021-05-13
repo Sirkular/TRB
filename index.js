@@ -210,6 +210,15 @@ client.on('message', async message => {
     else if (args[0] === 'check') {
       commands.queryTimeline(args.slice(1)).then(sendToChannel);
     }
+    else if (args[0] === 'revert') {
+      const char = args[1];
+      if (!char) {
+        sendToChannel('No character specified.');
+      }
+      else {
+        commands.revertTimeline(char).then(sendToChannel);
+      }
+    }
     else {
       sendToChannel('Please enter one of the following: \`advance\`, \`setperiod\`, or \`check\`');
     }

@@ -772,8 +772,8 @@ module.exports = function() {
         if (charRow === -1) return 'Character doesn\'t exist.';
         const timelineStartIdx = table[HEADER_ROW].indexOf(TIMELINE_START_COLUMN);
         const debutIdx = table[HEADER_ROW].indexOf(DEBUT_COLUMN);
-        if (isNaN(parseInt(table[charRow][debutIdx]))) return 'Character has not debuted.'
-        if (day < parseInt(table[charRow][debutIdx]) - timelineStartIdx) return 'Before debut.'
+        if (isNaN(parseInt(table[charRow][debutIdx]))) return 'Character has not debuted.';
+        if (day < parseInt(table[charRow][debutIdx]) - timelineStartIdx) return 'Before debut.';
         if (isNaN(day)) return 'Present day: ' + (getPresentDay(table, char) - timelineStartIdx);
         if (table[charRow].length <= timelineStartIdx + day || !table[charRow][timelineStartIdx + day]) return 'After present day.';
         for (let i = timelineStartIdx + day; i >= timelineStartIdx; i--) {
@@ -782,6 +782,40 @@ module.exports = function() {
         }
         return 'Character has no timeline.';
       })
+  }
+
+  commands.revertTimeline = function(char) {
+    let activity;
+    let activityDays;
+    let messageToChannel;
+
+    return sheetOp.getSheet(TIMELINE_SHEET)
+      .then((table) => {
+        const charRow = sheetOp.getRowWithValue(table, CHAR_COLUMN, char, true);
+        if (charRow === -1) return 'Character doesn\'t exist.';
+        const timelineStartIdx = table[HEADER_ROW].indexOf(TIMELINE_START_COLUMN);
+        const debutIdx = table[HEADER_ROW].indexOf(DEBUT_COLUMN);
+        const debutDay = parseInt(table[charRow][debutIdx]);
+        if (isNaN(debutDay)) return 'Character has not debuted.';
+        const requests = [];
+        const presentDayIdx = getPresentDay(table, char) - 1;
+        for (let i = presentDayIdx; i >= debutDay; i--) {
+          activity = table[charRow][i];
+          if (i === debutDay) {
+            requests.push(utils.genUpdateCellsRequest([''], TIMELINE_SHEET_ID, charRow, debutIdx))
+          }
+          if (activity !== TIMELINE_ACTIVITY_PLACEHOLDER) {
+            requests.push(utils.genUpdateCellsRequest(Array(presentDayIdx - i + 1).fill(''), TIMELINE_SHEET_ID, charRow, i));
+            activityDays = presentDayIdx - i + 1;
+            break;
+          }
+        }
+        return sheetOp.sendRequests(requests, null, true);
+      }).then(out => out || 'Last activity in the timeline has been reverted: ' + activity + ' for ' + activityDays + ' days.')
+      .catch(err => {
+        console.log(err);
+        return 'Reverting timeline has failed.';
+      });
   }
 
   function getStretch(row) {
