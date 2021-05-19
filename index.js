@@ -211,13 +211,17 @@ client.on('message', async message => {
       commands.queryTimeline(args.slice(1)).then(sendToChannel);
     }
     else if (args[0] === 'revert') {
-      const char = args[1];
-      if (!char) {
-        sendToChannel('No character specified.');
+      if (globe.checkDefaultAuthorized(message)) {
+        const char = args[1];
+        if (!char) {
+          sendToChannel('No character specified.');
+        }
+        else {
+          commands.revertTimeline(char).then(sendToChannel);
+        }
       }
-      else {
-        commands.revertTimeline(char).then(sendToChannel);
-      }
+      else
+        sendToChannel('Not authorized.')
     }
     else {
       sendToChannel('Please enter one of the following: \`advance\`, \`setperiod\`, or \`check\`');
