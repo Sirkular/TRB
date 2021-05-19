@@ -51,6 +51,7 @@ module.exports = function() {
           "setperiod": "Syncs all characters' timeline to <STARTING DAY> by filling in the disparity with downtime, then advances their timeline by <DAYS> days with <ACTIVITY>.\n" +
                        "\`timeline setperiod <CHARACTER NAME 1> <CHARACTER NAME 2> ... <STARTING DAY> <DAYS> <ACTIVITY>\`",
           "check": "Outputs what activity the character is partaking in on <DAY>.\n\`timeline check <CHARACTER NAME> <DAY>\`",
+          "revert": "Reverts a character's last activity, even a debut activity.\n\`timeline revert <CHARACTER NAME>\`",
         },
       },
       "downtime": {
