@@ -901,11 +901,17 @@ module.exports = function() {
   commands.scpMonthly = async function(guild) {
     const valueName = 'SESSION_CLAIM_POINTS';
     const values = {};
+    
+    //Multiple of these can be Active at one time
     values[globe.roles.ACTIVE] = 3;
     values[globe.roles.GM] = 1;
-    values[globe.roles.KING] = 1;
-    values[globe.roles.DEMON] = 1;
     values[globe.roles.GM_COACH] = 1;
+
+    //Accounts are only supposed to have the highest of these roles at any given time
+    values[globe.roles.SOLDIER] = 1;
+    values[globe.roles.KING] = 2;
+    values[globe.roles.DEMON] = 3;
+
     const amountsToAdd = {};
     await guild.members.fetch().then(members => {
       members.forEach(member => {
