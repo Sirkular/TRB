@@ -7,7 +7,7 @@ module.exports = function() {
   commands.scpMonthlyManual = function() {
     const TRB_GUILD_ID = '722115343862202368';
     const TRB = globe.discordClient.guilds.cache.find(guild => guild.id == TRB_GUILD_ID);
-    const botFeedbackChannel = TRB.channels.cache.find(channel => channel.name.toLowerCase() == 'bot-feedback'.toLowerCase());
+    const botFeedbackChannel = TRB.channels.cache.find(channel => channel.name.toLowerCase().includes('bot-feedback'));
     commands.scpMonthly(TRB).then((out) => botFeedbackChannel.send(out));
   }
   const scpMonthlyJob = nodeSchedule.scheduleJob('0 0 1 * *', commands.scpMonthlyManual);
@@ -498,7 +498,6 @@ module.exports = function() {
   }
 
   /**
-  * TODO: This needs to be refactored into addCharacterValue and addPlayerValue.
   * Add a numerical amount of a value to character(s)
   * args format: (valueName, amount, character prefixes...)
   */
@@ -529,6 +528,8 @@ module.exports = function() {
             let newValue = curValue + amount;
             let req = utils.genUpdateCellsRequest([newValue], sheetId, charRow, valueCol);
             requests.push(req);
+            req = handleResource(sheetId, table, valueName, charRow, curValue, newValue);
+            if (req) requests.push(req);
           };
           sheetOp.sendRequests(requests, message).then(() => {
             resolve('Successfully added values.');
@@ -540,6 +541,21 @@ module.exports = function() {
           resolve('Error adding value to character(s).');
         });
     });
+  }
+
+  function handleResource(sheetId, table, resource, charRow, oldValue, newValue) {
+    resource = resource.toLowerCase();
+    if (resource === 'mxp') {
+      const levelPerOld = MXP_THRESHOLDS.indexOf(MXP_THRESHOLDS.find(th => oldValue < th));
+      const levelPerNew = MXP_THRESHOLDS.indexOf(MXP_THRESHOLDS.find(th => newValue < th));
+      if (levelPerOld != levelPerNew) {
+        const valueCol = table[HEADER_ROW].indexOf(HERO_POINTS_COLUMN);
+        let curHeroPoints = table[charRow][valueCol] ? parseInt(table[charRow][valueCol]) : 0;
+        return utils.genUpdateCellsRequest([curHeroPoints + (levelPerNew - levelPerOld)], sheetId, charRow, valueCol);
+      }
+      return null;
+    }
+    return null;
   }
 
   commands.addPlayerValue = function(message, players, valueName, amount) {
@@ -885,11 +901,17 @@ module.exports = function() {
   commands.scpMonthly = async function(guild) {
     const valueName = 'SESSION_CLAIM_POINTS';
     const values = {};
+    
+    //Multiple of these can be Active at one time
     values[globe.roles.ACTIVE] = 3;
     values[globe.roles.GM] = 1;
-    values[globe.roles.KING] = 1;
-    values[globe.roles.DEMON] = 1;
     values[globe.roles.GM_COACH] = 1;
+
+    //Accounts are only supposed to have the highest of these roles at any given time
+    values[globe.roles.SOLDIER] = 1;
+    values[globe.roles.KING] = 2;
+    values[globe.roles.DEMON] = 3;
+
     const amountsToAdd = {};
     await guild.members.fetch().then(members => {
       members.forEach(member => {
