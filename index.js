@@ -11,8 +11,10 @@ globe.roles = {
   MODERATOR: 'Moderator',
   RULES_TEAM: 'Rules Team',
   TECH_TEAM: 'Tech Team',
+  HUMAN_RESOURCES: 'Human Resources',
   ACTIVE: 'Active'
 };
+
 require('dotenv').config();
 require('./branchConstants.js');
 
@@ -26,7 +28,7 @@ globe.checkAuthorized = function(message, authorizedRoles) {
 };
 
 globe.checkDefaultAuthorized = function(message) {
-  const defaultAuthorizedRoles = [globe.roles.GM, globe.roles.TRIAL_GM, globe.roles.MODERATOR];
+  const defaultAuthorizedRoles = [globe.roles.GM, globe.roles.TRIAL_GM, globe.roles.MODERATOR, globe.roles.HUMAN_RESOURCES];
   return globe.checkAuthorized(message, defaultAuthorizedRoles);
 }
 
