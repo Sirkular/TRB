@@ -906,12 +906,16 @@ module.exports = function() {
     values[globe.roles.ACTIVE] = 3;
     values[globe.roles.GM] = 1;
     values[globe.roles.GM_COACH] = 1;
+    values[globe.roles.HUMAN_RESOURCES] = 1;
+    
 
     //Accounts are only supposed to have the highest of these roles at any given time
     values[globe.roles.SOLDIER] = 1;
     values[globe.roles.KING] = 2;
     values[globe.roles.DEMON] = 3;
-
+    values[globe.roles.GREATER_NINE] = 4;
+    values[globe.roles.PLANESHAPER] = 5;
+    
     const amountsToAdd = {};
     await guild.members.fetch().then(members => {
       members.forEach(member => {
