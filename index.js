@@ -6,6 +6,8 @@ globe.roles = {
   SOLDIER: 'Soldier',
   KING: 'King',
   DEMON: 'Demon',
+  GREATER_NINE: 'Greater Nine',
+  PLANESHAPER: 'Planeshaper',
   DEMON_DADDY: 'Demon Daddy',
   GM_COACH: 'GM Coach',
   MODERATOR: 'Moderator',
