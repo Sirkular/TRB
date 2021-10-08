@@ -904,8 +904,8 @@ module.exports = function() {
     
     //Multiple of these can be Active at one time
     values[globe.roles.ACTIVE] = 3;
-    values[globe.roles.GM] = 1;
-    values[globe.roles.GM_COACH] = 1;
+    values[globe.roles.GM] = 3;
+    values[globe.roles.GM_COACH] = 2;
     values[globe.roles.HUMAN_RESOURCES] = 1;
     
 
