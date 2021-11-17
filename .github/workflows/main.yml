@@ -31,7 +31,9 @@ jobs:
         run: ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
       - name: SSH into production
-        run: ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} -p${{ secrets.SERVER_PORT}} && cd bot && cd TRB
+        run: |
+          ssh -T ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} -p${{ secrets.SERVER_PORT}}
+          cd bot/TRB
         
       - name: Pull master
         run: |
