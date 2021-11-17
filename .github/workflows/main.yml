@@ -31,4 +31,15 @@ jobs:
         run: ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
       - name: SSH into production
-        run: ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} -p${{ secrets.SERVER_PORT}} && dir
+        run: ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} -p${{ secrets.SERVER_PORT}} && cd bot && cd TRB
+        
+      - name: Pull master
+        run: |
+          git checkout master
+          git pull
+      
+      - name: Restart bot
+        run: |
+          forever stop index.js
+          forever start index.js
+          
