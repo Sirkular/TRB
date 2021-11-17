@@ -32,7 +32,7 @@ jobs:
 
       - name: SSH into production
         run: |
-          ssh -tt ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} -p${{ secrets.SERVER_PORT}}
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} -p${{ secrets.SERVER_PORT}}
           cd bot/TRB
         
       - name: Pull master
