@@ -221,7 +221,7 @@ client.on('message', async message => {
           sendToChannel('No character specified.');
         }
         else {
-          commands.revertTimeline(char).then(sendToChannel);
+          commands.revertTimeline(message, char).then(sendToChannel);
         }
       }
       else

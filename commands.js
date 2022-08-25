@@ -800,7 +800,7 @@ module.exports = function() {
       })
   }
 
-  commands.revertTimeline = function(char) {
+  commands.revertTimeline = function(message, char) {
     let activity;
     let activityDays;
     let messageToChannel;
@@ -828,7 +828,7 @@ module.exports = function() {
             break;
           }
         }
-        return sheetOp.sendRequests(requests, null, true);
+        return sheetOp.sendRequests(requests, message);
       }).then(out => out || `Last activity in ${charName}'s timeline has been reverted: ${activity} for ${activityDays} days.`)
       .catch(err => {
         console.log(err);
