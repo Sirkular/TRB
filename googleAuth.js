@@ -29,10 +29,6 @@ module.exports = function() {
             .catch((err) => {});
         else {
           var tokenObj = JSON.parse(token);
-          if (!DEV_MODE) {
-            tokenObj.access_token = process.env.ACCESS_TOKEN;
-            tokenObj.refresh_token = process.env.REFRESH_TOKEN;
-          }
           oAuth2Client.setCredentials(tokenObj);
           resolve(oAuth2Client);
         }
@@ -63,12 +59,6 @@ module.exports = function() {
           if (err) reject(console.error('Error while trying to retrieve access token', err));
           oAuth2Client.setCredentials(token);
           // Store relevant token info to env for later function executions
-          if (!DEV_MODE) {
-            process.env.ACCESS_TOKEN = token.access_token;
-            process.env.REFRESH_TOKEN = token.refresh_token;
-            token.access_token = "";
-            token.refresh_token = "";
-          }
           fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
             if (err) reject(console.error(err));
             console.log('Token stored to', TOKEN_PATH);
@@ -84,7 +74,6 @@ module.exports = function() {
       if (err) reject(console.log('Error loading client secret file:', err));
       // Authorize a client with credentials, then call the Google Sheets API.
       var contentObj = JSON.parse(content);
-      if (!DEV_MODE) contentObj.installed.client_secret = process.env.CLIENT_SECRET;
       authorize(contentObj)
         .then((oAuth2Client) => {
           resolve({google: google, auth: oAuth2Client});
