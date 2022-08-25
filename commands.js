@@ -804,6 +804,7 @@ module.exports = function() {
     let activity;
     let activityDays;
     let messageToChannel;
+    let charName;
 
     return sheetOp.getSheet(TIMELINE_SHEET)
       .then((table) => {
@@ -812,6 +813,7 @@ module.exports = function() {
         const timelineStartIdx = table[HEADER_ROW].indexOf(TIMELINE_START_COLUMN);
         const debutIdx = table[HEADER_ROW].indexOf(DEBUT_COLUMN);
         const debutDay = parseInt(table[charRow][debutIdx]);
+        charName = table[charRow][table[HEADER_ROW].indexOf(CHAR_COLUMN)];
         if (isNaN(debutDay)) return 'Character has not debuted.';
         const requests = [];
         const presentDayIdx = getPresentDay(table, char) - 1;
@@ -827,7 +829,7 @@ module.exports = function() {
           }
         }
         return sheetOp.sendRequests(requests, null, true);
-      }).then(out => out || 'Last activity in the timeline has been reverted: ' + activity + ' for ' + activityDays + ' days.')
+      }).then(out => out || `Last activity in ${charName}'s timeline has been reverted: ${activity} for ${activityDays} days.`)
       .catch(err => {
         console.log(err);
         return 'Reverting timeline has failed.';
