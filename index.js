@@ -221,14 +221,14 @@ client.on('message', async message => {
           sendToChannel('No character specified.');
         }
         else {
-          commands.revertTimeline(char).then(sendToChannel);
+          commands.revertTimeline(message, char).then(sendToChannel);
         }
       }
       else
         sendToChannel('Not authorized.')
     }
     else {
-      sendToChannel('Please enter one of the following: \`advance\`, \`setperiod\`, or \`check\`');
+      sendToChannel('Please enter one of the following: \`advance\`, \`setperiod\`, \`check\`, or \`revert\`');
     }
   }
   else if (command === 'downtime') {
